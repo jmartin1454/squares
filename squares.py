@@ -105,7 +105,7 @@ class coilcube:
         thesecorners=thesecorners+x
         self.face.append(face(ydim,zdim,thesecorners))
         self.numcoils = (xdim*ydim + xdim*zdim + ydim*zdim)*2
-        self.numindep = self.numcoils - 1 # valid for xdim=ydim=zdim=1
+        #self.numindep = self.numcoils - 1 # valid for xdim=ydim=zdim=1
     def coil(self,number):
         xdim=self.xdim
         ydim=self.ydim
@@ -123,8 +123,9 @@ class coilcube:
         else:
             return self.face[5].coil[number-xdim*ydim*2-xdim*zdim*2-ydim*zdim]
     def set_independent_current(self,number,current):
-        # wire the last two coils together
-        # only works if xdim=ydim=zdim=1
+        # # wire the last two coils together
+        # # only works if xdim=ydim=zdim=1
+        # made it back to not wired together Jeff
         xdim=self.xdim
         ydim=self.ydim
         zdim=self.zdim
@@ -138,6 +139,7 @@ class coilcube:
             self.face[3].coil[number-xdim*ydim*2-xdim*zdim].set_current(current)
         elif(number<xdim*ydim*2+xdim*zdim*2+ydim*zdim):
             self.face[4].coil[number-xdim*ydim*2-xdim*zdim*2].set_current(current)
+        else:
             self.face[5].coil[number-xdim*ydim*2-xdim*zdim*2-ydim*zdim].set_current(current)
     def draw_coil(self,number,ax):
         coil = self.coil(number)
@@ -305,7 +307,7 @@ from decimal import Decimal
 
 class the_matrix:
     def __init__(self,mycube,myarray):
-        self.m = np.zeros((mycube.numindep,myarray.numsensors*3))
+        self.m = np.zeros((mycube.numcoils,myarray.numsensors*3))
         self.fill(mycube,myarray)
         self.minv=np.linalg.pinv(self.m)
         self.condition = np.linalg.cond(self.m)
@@ -324,7 +326,7 @@ class the_matrix:
         print "The Diagonal Matrix in log form is : ", self.L_V
     def fill(self,mycube,myarray):
         # fill m, units of nT/A
-        for i in range(mycube.numindep):
+        for i in range(mycube.numcoils):
             mycube.set_independent_current(i,1.0)
             for j in range(myarray.numsensors):
                 r = myarray.sensors[j].pos
@@ -362,18 +364,6 @@ class the_matrix:
         plt.colorbar()
         plt.show()
     def show_matrices(self):
-        #mp=1000000
-        #mp4=1000
-        #mp6=100
-        #mp4s='%.1E' % Decimal(1000)
-        #mp6s='%.1E' % Decimal(100)
-        #mps='%.1E' % Decimal(1000000)
-        #column_labels = ['1x', '1y', '1z','2x', '2y', '2z','3x', '3y', '3z','4x', '4y', '4z','6x', '6y', '6z', '8x', '8y', '8z']
-        #row_labels_all = ['X-(1)', 'X+(2)', 'Y-(3)', 'Y+(4)', 'Z-(5)', 'Z+(6)']
-        #row_labels=[]
-        #for d in range(len(np.arange(self.m.shape[0]))):
-	#    row_labels.append(row_labels_all[d])
-
         fig1, ax1 = plt.subplots()
         fig2, ax2 = plt.subplots()
         fig3, ax3 = plt.subplots()
@@ -387,14 +377,10 @@ class the_matrix:
         ax4.imshow(self.U, interpolation='nearest', cmap=cm.bwr, aspect='auto' )
         ax6.imshow(self.Wt, interpolation='nearest', cmap=cm.bwr, aspect='auto' )
 
-        #ax1.set_xticklabels(column_labels)
-        #ax2.set_xticklabels(column_labels)
-
         ax1.set_xticks(np.arange(self.m.shape[1]))
         ax1.set_yticks(np.arange(self.m.shape[0]))
         ax1.set_xlabel('Fluxgate positions')
         ax1.set_ylabel('Coils')
-        #ax1.set_yticklabels(row_labels)
         ax1.set_title('Matrix M* (nT/A) ('+str(len(np.arange(self.m.shape[0])))+'coils * '+str(len(np.arange(self.m.shape[1])))+'sensors)')
 
         ax2.set_xticks(np.arange(self.capital_M1.shape[1]))
@@ -403,6 +389,7 @@ class the_matrix:
         ax2.set_ylabel('Coils')
         #ax2.set_yticklabels(row_labels)
         #ax2.set_title('Pseudoinverse of M (*'+str(mps)+') (A/nT) ('+str(len(np.arange(self.m.shape[0])))+'coils * '+str(len(np.arange(self.m.shape[1])))+'sensors)')
+        ax2.set_title('Pseudoinverse of M ('+str(len(np.arange(self.m.shape[0])))+'coils * '+str(len(np.arange(self.m.shape[1])))+'sensors)')
 
         ax3.set_xticks(np.arange(self.Vmat.shape[1]))
         ax3.set_yticks(np.arange(self.Vmat.shape[0]))
@@ -411,10 +398,12 @@ class the_matrix:
         ax4.set_xticks(np.arange(self.U.shape[1]))
         ax4.set_yticks(np.arange(self.U.shape[0]))
         #ax4.set_title('U-Orthonormal eigenvectors(*'+str(mp4s)+') of MM* ('+str(len(np.arange(self.m.shape[1])))+'*'+str(len(np.arange(self.m.shape[1])))+')')
+        ax4.set_title('U-Orthonormal eigenvectors of MM* ('+str(len(np.arange(self.m.shape[1])))+'*'+str(len(np.arange(self.m.shape[1])))+')')
         
         ax6.set_xticks(np.arange(self.Wt.shape[1]))
         ax6.set_yticks(np.arange(self.Wt.shape[0]))
         #ax6.set_title('W*-Orthonormal eigenvectors(*'+str(mp6s)+') of M*M ('+str(len(np.arange(self.m.shape[0])))+'*'+str(len(np.arange(self.m.shape[0])))+')')
+        ax6.set_title('W*-Orthonormal eigenvectors of M*M ('+str(len(np.arange(self.m.shape[0])))+'*'+str(len(np.arange(self.m.shape[0])))+')')
 
         #for c in range (0,len(np.arange(self.m.shape[0]))):
 	#    for s in range (0,len(np.arange(self.m.shape[1]))):
