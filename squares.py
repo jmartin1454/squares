@@ -481,3 +481,4 @@ print(vec_i)
 # Assign currents to coilcube
 
 mycube.set_currents(vec_i)
+
