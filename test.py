@@ -48,7 +48,7 @@ print(pinv(A,.0001).dot(lilb))
 print("dodo")
 # do same for svd
 # select
-n_elements = 1
+n_elements = 1 # fix by cutting to this number of eigenvalues
 D = D[:, :n_elements]
 VT = VT[:n_elements, :]
 print("newD",D)

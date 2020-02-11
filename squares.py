@@ -141,6 +141,17 @@ class coilcube:
             self.face[4].coil[number-xdim*ydim*2-xdim*zdim*2].set_current(current)
         else:
             self.face[5].coil[number-xdim*ydim*2-xdim*zdim*2-ydim*zdim].set_current(current)
+
+    def set_currents(self,vec_i):
+        # set the currents to the vector given as the argument
+        for i in range(self.numcoils):
+            self.set_independent_current(i,vec_i[i])
+            
+    def zero_currents(self):
+        # set all currents to zero
+        for i in range(self.numcoils):
+            self.set_independent_current(i,0.0)
+            
     def draw_coil(self,number,ax):
         coil = self.coil(number)
         points = coil.corners + (coil.corners[0],)
@@ -220,7 +231,7 @@ p3 = p0 + np.array([0,0,a])
 points = (p0,p1,p2,p3)
 print('hello')
 print(points)
-mycube = coilcube(3,3,3,points)
+mycube = coilcube(1,1,1,points)
 #print(mycube.face[1].coil[2].corners)
 #print(mycube.coil(6).corners)
 #print(mycube.coil(6).current)
@@ -266,6 +277,19 @@ class sensorarray:
     def draw_sensors(self,ax):
         for number in range(self.numsensors):
             self.draw_sensor(number,ax)
+    def vec_b(self):
+        # makes a vector of magnetic fields in the same ordering as
+        # the_matrix class below
+        the_vector=np.zeros((self.numsensors*3))
+        for j in range(myarray.numsensors):
+            r = myarray.sensors[j].pos
+            b = harmonic(r)
+            for k in range(3):
+                the_vector[j*3+k]=b[k]*1.e9 # convert to nT here
+        return the_vector
+
+def harmonic(r):
+    return np.array([0.,0.,1.e-7])
 
 # test of sensorarray class
 a = 0.5
@@ -279,6 +303,9 @@ print(myarray.sensors[0].pos)
 print(myarray.numsensors)
 print(myarray.sensors[myarray.numsensors-1].pos)
 print(myarray.sensors[myarray.numsensors-2].pos)
+
+print('the vector test')
+print(len(myarray.vec_b()),myarray.vec_b())
 
 import matplotlib as mpl
 from mpl_toolkits.mplot3d import Axes3D
@@ -300,30 +327,46 @@ mycube.coil(0).set_current(1.0)
 print(mycube.b(myarray.sensors[0].pos))
 mycube.coil(0).set_current(0.0)
 
-
-from math import log10
 from matplotlib import cm
-from decimal import Decimal
 
 class the_matrix:
     def __init__(self,mycube,myarray):
-        self.m = np.zeros((mycube.numcoils,myarray.numsensors*3))
+        self.m=np.zeros((mycube.numcoils,myarray.numsensors*3))
         self.fill(mycube,myarray)
-        self.minv=np.linalg.pinv(self.m)
         self.condition = np.linalg.cond(self.m)
-        self.capital_M=self.m.T #(Here, M=s*c=sensors*coils Matrix  )
-        self.capital_M1=np.linalg.pinv(self.capital_M)
 
-        self.U, self.V, self.Wt = np.linalg.svd(self.capital_M, full_matrices=True)
-        self.W, self.Vinv, self.Ut = np.linalg.svd(self.capital_M1, full_matrices=True)
-        self.Vmat=np.zeros([len(np.arange(self.m.shape[1])),len(np.arange(self.m.shape[0]))]) 
-        for d in range (0,len(np.arange(self.m.shape[0])),1):
-	    self.Vmat[d][d]=self.V[d]
-        self.Vmat_T=self.Vmat.T
-        self.L_V=[]
-        for i in range (0,len(np.arange(self.m.shape[0])),1):
-	    self.L_V.append(round(log10(self.V[i]),1))
-        print "The Diagonal Matrix in log form is : ", self.L_V
+        # for some reason I chose to create the transpose of the usual
+        # convention, when I first wrote the fill method
+        self.capital_M=self.m.T # M=s*c=sensors*coils Matrix
+
+        # Do the svd
+        self.U,self.s,self.VT=np.linalg.svd(self.capital_M)
+
+        # s is just a list of the diagonal elements, rather than a matrix
+        # You can make the matrix this way:
+        self.S=np.zeros(self.capital_M.shape)
+        self.S[:self.capital_M.shape[1],:self.capital_M.shape[1]]=np.diag(self.s)
+        # Or, I've seen people use "full_matrices=True" in the svd command
+
+        # Start to calculate the inverse explicitly
+        # list of reciprocals
+        d=1./self.s
+        self.D=np.zeros(self.capital_M.shape)
+        # matrix of reciprocals
+        self.D[:self.capital_M.shape[1],:self.capital_M.shape[1]]=np.diag(d)
+
+        # inverse of capital_M
+        self.Minv=self.VT.T.dot(self.D.T).dot(self.U.T)
+        self.Minv=np.linalg.pinv(self.capital_M)
+        
+        # now gets to fixin'
+        # remove just the last mode
+        n_elements=mycube.numcoils-1
+
+        self.Dp=self.D[:,:n_elements]
+        self.VTp=self.VT[:n_elements,:]
+        self.Minvp=self.VTp.T.dot(self.Dp.T).dot(self.U.T)
+        
     def fill(self,mycube,myarray):
         # fill m, units of nT/A
         for i in range(mycube.numcoils):
@@ -334,6 +377,7 @@ class the_matrix:
                 for k in range(3):
                     self.m[i,j*3+k]=b[k]*1.e9 # convert to nT here
             mycube.set_independent_current(i,0.0)
+
     def check_field_graphically(self,mycube,myarray):
         # test each coil by graphing field at each sensor
         for i in range(mycube.numcoils):
@@ -355,28 +399,28 @@ class the_matrix:
             mycube.coil(i).set_current(0.0)
             ax.legend()
             plt.show()
-    def show_matrix(self):
-        plt.imshow(self.m,interpolation='none')
-        plt.colorbar()
-        plt.show()
-    def show_inverse(self):
-        plt.imshow(self.minv,interpolation='none')
-        plt.colorbar()
-        plt.show()
+
     def show_matrices(self):
-        fig1, ax1 = plt.subplots()
-        fig2, ax2 = plt.subplots()
-        fig3, ax3 = plt.subplots()
-        fig4, ax4 = plt.subplots()
-        fig6, ax6 = plt.subplots()
+        fig1,ax1=plt.subplots()
+        fig2,ax2=plt.subplots()
+        fig3,ax3=plt.subplots()
+        fig4,ax4=plt.subplots()
+        fig5,ax5=plt.subplots()
+        fig6,ax6=plt.subplots()
+        fig7,ax7=plt.subplots()
+        fig8,ax8=plt.subplots()
+        fig9,ax9=plt.subplots()
 
-
-        ax1.imshow(self.m, interpolation='none', cmap=cm.bwr, aspect='auto' )
-        ax2.imshow(self.capital_M1, interpolation='nearest', cmap=cm.bwr, aspect='auto' )
-        ax3.imshow(self.Vmat, interpolation='nearest', cmap=cm.bwr, aspect='auto' )
-        ax4.imshow(self.U, interpolation='nearest', cmap=cm.bwr, aspect='auto' )
-        ax6.imshow(self.Wt, interpolation='nearest', cmap=cm.bwr, aspect='auto' )
-
+        ax1.imshow(self.capital_M,cmap=cm.bwr)
+        ax2.imshow(self.U,cmap=cm.bwr)
+        ax3.imshow(self.S,cmap=cm.bwr)
+        ax4.imshow(self.VT,cmap=cm.bwr)
+        ax5.imshow(self.D,cmap=cm.bwr)
+        ax6.imshow(self.Minv,cmap=cm.bwr)
+        ax7.imshow(self.Dp,cmap=cm.bwr)
+        ax8.imshow(self.VTp,cmap=cm.bwr)
+        ax9.imshow(self.Minvp,cmap=cm.bwr)
+        '''
         ax1.set_xticks(np.arange(self.m.shape[1]))
         ax1.set_yticks(np.arange(self.m.shape[0]))
         ax1.set_xlabel('Fluxgate positions')
@@ -418,6 +462,7 @@ class the_matrix:
         #for c in range (0,len(np.arange(self.Wt.shape[0]))):
 	#    for s in range (0,len(np.arange(self.Wt.shape[1]))):
 	#	ax6.text(s, c, int(self.Wt[c][s]*mp6), va='center', ha='center')
+        '''
 
         plt.show()
 
@@ -425,5 +470,14 @@ class the_matrix:
 mymatrix = the_matrix(mycube,myarray)
 
 print(mymatrix.condition)
-mymatrix.show_matrices()
+#mymatrix.show_matrices()
 
+# Set up vector of desired fields
+
+print(len(myarray.vec_b()),myarray.vec_b())
+vec_i=mymatrix.Minvp.dot(myarray.vec_b())
+print(vec_i)
+
+# Assign currents to coilcube
+
+mycube.set_currents(vec_i)
