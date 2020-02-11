@@ -2,85 +2,15 @@
 
 # Fri May 24 10:11:45 CDT 2019 Jeff added this line.
 
+# Tue Feb 11 13:43:43 CST 2020 Jeff taking original patch.py and
+# updating to solve the zero mode issue.  Will now update to use the
+# patchlib submodule.
+
 
 from scipy.constants import mu_0, pi
 import numpy as np
+from patchlib.patch import *
 
-def b_segment(i,p0,p1,r):
-    # p0 is one end (vector in m)
-    # p1 is the other (m)
-    # r is the position of interest (m)
-    # i is the current (A)
-    d0 = r - p0
-    d1 = r - p1
-    ell = p1 - p0
-    lend0 = np.sqrt(d0.dot(d0))
-    lend1 = np.sqrt(d1.dot(d1))
-    lenell = np.sqrt(ell.dot(ell))
-    costheta0 = np.inner(ell,d0)/lenell/lend0
-    costheta1 = -np.inner(ell,d1)/lenell/lend1
-    ellcrossd0 = np.cross(ell,d0)
-    lenellcrossd0 = np.sqrt(ellcrossd0.dot(ellcrossd0))
-    modsintheta0 = lenellcrossd0/lenell/lend0
-    a = lend0 * modsintheta0
-    if(lenellcrossd0>0):
-        nhat = ellcrossd0/lenellcrossd0
-    else:
-        nhat = np.array([0,0,0])
-
-    if(a>0):
-        b_total=mu_0*i/4.0/pi/a*(costheta0+costheta1)*nhat
-    else:
-        b_total = np.array([0,0,0])
-
-    return b_total
-
-def b_loop(i,points,r):
-    # i is the current (A)
-    # points is a list of numpy 3-arrays defining the loop (m)
-    # r is the position of interest (m)
-    b_total = np.array([0,0,0])
-    for j in range(len(points)):
-        b_total = b_total + b_segment(i,points[j-1],points[j],r)
-    return b_total
-
-# Halliday & Resnick, 10th ed., question 29.13
-p0 = np.array([0,0,0])
-p1 = np.array([0.18,0,0])
-r = np.array([0.09,0.131,0])
-i = 0.0582
-print(b_segment(i,p0,p1,r))
-
-# Halliday & Resnick, 10th ed., question 29.17
-p0 = np.array([0,0,0])
-p1 = np.array([0.136,0,0])
-r = np.array([0.136,0.251,0])
-i = 0.693
-print(b_segment(i,p0,p1,r))
-
-# Halliday & Resnick, 10th ed., question 29.31
-a = 0.047
-i = 13.0
-p0 = np.array([0,0,0])
-p1 = np.array([2*a,0,0])
-p2 = np.array([2*a,a,0])
-p3 = np.array([a,a,0])
-p4 = np.array([a,2*a,0])
-p5 = np.array([0,2*a,0])
-points = (p0,p1,p2,p3,p4,p5)
-r = np.array([2*a,2*a,0])
-print(b_loop(i,points,r))
-
-# Halliday & Resnick, 10th ed., question 29.83
-a = 0.08
-i = 10.0
-p0 = np.array([0,0,0])
-p1 = np.array([a,0,0])
-p2 = np.array([a,-a,0])
-p3 = np.array([0,-a,0])
-points = (p0,p1,p2,p3)
-r = np.array([a/4,-a/4,0])
-print(b_loop(i,points,r))
 
 class coilcube:
     def __init__(self,xdim,ydim,zdim,corners):
@@ -104,8 +34,8 @@ class coilcube:
         self.face.append(face(ydim,zdim,thesecorners))
         thesecorners=thesecorners+x
         self.face.append(face(ydim,zdim,thesecorners))
-        self.numcoils = (xdim*ydim + xdim*zdim + ydim*zdim)*2
-        #self.numindep = self.numcoils - 1 # valid for xdim=ydim=zdim=1
+        self.numcoils=(xdim*ydim+xdim*zdim+ydim*zdim)*2
+
     def coil(self,number):
         xdim=self.xdim
         ydim=self.ydim
@@ -122,6 +52,7 @@ class coilcube:
             return self.face[4].coil[number-xdim*ydim*2-xdim*zdim*2]
         else:
             return self.face[5].coil[number-xdim*ydim*2-xdim*zdim*2-ydim*zdim]
+
     def set_independent_current(self,number,current):
         # # wire the last two coils together
         # # only works if xdim=ydim=zdim=1
@@ -154,19 +85,32 @@ class coilcube:
             
     def draw_coil(self,number,ax):
         coil = self.coil(number)
-        points = coil.corners + (coil.corners[0],)
+        points = coil.points + (coil.points[0],)
         x = ([p[0] for p in points])
         y = ([p[1] for p in points])
         z = ([p[2] for p in points])
         ax.plot(x,y,z,label='coil')
+
     def draw_coils(self,ax):
         for number in range(self.numcoils):
             self.draw_coil(number,ax)
+
     def b(self,r):
         b_total = 0.0
         for number in range(self.numcoils):
             b_total = b_total + self.coil(number).b(r)
         return b_total
+
+    def b_prime(self,x,y,z):
+        b_total_x=0.*x
+        b_total_y=0.*y
+        b_total_z=0.*z
+        for coilnum in range(self.numcoils):
+            b_coil_x,b_coil_y,b_coil_z=self.coil(coilnum).b_prime(x,y,z)
+            b_total_x=b_total_x+b_coil_x
+            b_total_y=b_total_y+b_coil_y
+            b_total_z=b_total_z+b_coil_z
+        return b_total_x,b_total_y,b_total_z
 
 class face:
     def __init__(self,xdim,ydim,corners):
@@ -190,22 +134,18 @@ class face:
                 coilnum = coilnum + 1
         self.coilnum = coilnum
 
-class coil:
-    def __init__(self,corners,current):
-        self.corners = corners
-        self.current = current
-    def set_current(self,current):
-        self.current = current
-    def b(self,r):
-        return b_loop(self.current,self.corners,r)
-
-# repeat of 29.83:
-thiscoil = coil(points,i)
-print(thiscoil.b(r))
-thiscoil.set_current(i/2.0)
-print(thiscoil.b(r))
-
 # test of face class -- made a slight change after this test
+
+# Halliday & Resnick, 10th ed., question 29.83
+a = 0.08
+i = 10.0
+p0 = np.array([0,0,0])
+p1 = np.array([a,0,0])
+p2 = np.array([a,-a,0])
+p3 = np.array([0,-a,0])
+points = (p0,p1,p2,p3)
+r = np.array([a/4,-a/4,0])
+print(b_loop(i,points,r))
 
 # p0 is kind of like the origin; p1 and p3 are kind of like basis
 # vectors, defining the sides of the rectangular face, whose corner is
@@ -213,10 +153,10 @@ print(thiscoil.b(r))
 points = (p0,p1,p3)
 thisface = face(2,2,points)
 print(thisface.coilnum)
-print(thisface.coil[0].corners)
-print(thisface.coil[1].corners)
-print(thisface.coil[2].corners)
-print(thisface.coil[3].corners)
+print(thisface.coil[0].points)
+print(thisface.coil[1].points)
+print(thisface.coil[2].points)
+print(thisface.coil[3].points)
 
 # test of coilcube class
 
@@ -470,7 +410,7 @@ class the_matrix:
 mymatrix = the_matrix(mycube,myarray)
 
 print(mymatrix.condition)
-#mymatrix.show_matrices()
+mymatrix.show_matrices()
 
 # Set up vector of desired fields
 
@@ -481,4 +421,3 @@ print(vec_i)
 # Assign currents to coilcube
 
 mycube.set_currents(vec_i)
-
