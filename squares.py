@@ -171,7 +171,7 @@ p3 = p0 + np.array([0,0,a])
 points = (p0,p1,p2,p3)
 print('hello')
 print(points)
-mycube = coilcube(1,1,1,points)
+mycube = coilcube(3,3,3,points)
 #print(mycube.face[1].coil[2].corners)
 #print(mycube.coil(6).corners)
 #print(mycube.coil(6).current)
@@ -229,7 +229,7 @@ class sensorarray:
         return the_vector
 
 def harmonic(r):
-    return np.array([0.,0.,1.e-7])
+    return np.array([0.,0.,1.e-6])
 
 # test of sensorarray class
 a = 0.5
@@ -410,7 +410,7 @@ class the_matrix:
 mymatrix = the_matrix(mycube,myarray)
 
 print(mymatrix.condition)
-mymatrix.show_matrices()
+#mymatrix.show_matrices()
 
 # Set up vector of desired fields
 
@@ -421,3 +421,44 @@ print(vec_i)
 # Assign currents to coilcube
 
 mycube.set_currents(vec_i)
+
+# Check the field at the center of the coilcube
+r=np.array([0,0,0])
+print(mycube.b(r))
+print(mycube.b_prime(0,0,0))
+
+from scipy.optimize import curve_fit
+min_field=-1.e-6
+max_field=2.e-6
+
+fig7,(ax71)=plt.subplots(nrows=1)
+
+def fiteven(x,p0,p2,p4,p6):
+    return p0+p2*x**2+p4*x**4+p6*x**6
+
+def fitodd(x,p1,p3,p5,p7):
+    return p1*x+p3*x**3+p5*x**5+p7*x**7
+
+def fitgraph(xdata,ydata,ax):
+    popt,pcov=curve_fit(fiteven,xdata[abs(xdata)<.5],ydata[abs(xdata)<.5])
+    print(popt)
+    ax.plot(points1d,fiteven(xdata,*popt),'r--',label='$p_0$=%2.1e,$p_2$=%2.1e,$p_4$=%2.1e,$p_6$=%2.1e'%tuple(popt))
+
+print('In case you are interested, 4*pi/10 is %f'%(4.*pi/10))
+
+points1d=np.mgrid[-1:1:101j]
+bx1d,by1d,bz1d=mycube.b_prime(0.,points1d,0.)
+fitgraph(points1d,bz1d,ax71)
+ax71.plot(points1d,bz1d,label='$B_z(0,y,0)$')
+bx1d,by1d,bz1d=mycube.b_prime(points1d,0.,0.)
+fitgraph(points1d,bz1d,ax71)
+ax71.plot(points1d,bz1d,label='$B_z(x,0,0)$')
+bx1d,by1d,bz1d=mycube.b_prime(0.,0.,points1d)
+fitgraph(points1d,bz1d,ax71)
+ax71.plot(points1d,bz1d,label='$B_z(0,0,z)$')
+
+ax71.axis((-.5,.5,min_field,max_field))
+ax71.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+ax71.legend()
+
+plt.show()
