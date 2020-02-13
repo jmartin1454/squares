@@ -10,7 +10,7 @@
 from scipy.constants import mu_0, pi
 import numpy as np
 from patchlib.patch import *
-
+from Pis.Pislib import *
 
 class coilcube:
     def __init__(self,xdim,ydim,zdim,corners):
@@ -181,6 +181,14 @@ class sensor:
     def __init__(self,pos):
         self.pos = pos
 
+sp=scalarpotential(0,0)
+print("Sigma in spherical coordinates is %s"%sp.Sigma_spherical)
+print("Sigma in cartesian coordinates is %s"%sp.Sigma)
+
+print("Pix is %s"%sp.Pix)
+print("Piy is %s"%sp.Piy)
+print("Piz is %s"%sp.Piz)
+
 class sensorarray:
     def __init__(self,xdim,ydim,zdim,corners):
         x = corners[1]-corners[0]
@@ -223,13 +231,19 @@ class sensorarray:
         the_vector=np.zeros((self.numsensors*3))
         for j in range(myarray.numsensors):
             r = myarray.sensors[j].pos
-            b = harmonic(r)
+            #b = harmonic(r)
+            
+            b=np.array([sp.fPix(r[0],r[1],r[2]),
+                        sp.fPiy(r[0],r[1],r[2]),
+                        sp.fPiz(r[0],r[1],r[2])])
             for k in range(3):
-                the_vector[j*3+k]=b[k]*1.e9 # convert to nT here
+                the_vector[j*3+k]=b[k]
         return the_vector
 
 def harmonic(r):
     return np.array([0.,0.,1.e-6])
+
+
 
 # test of sensorarray class
 a = 0.5
@@ -315,7 +329,7 @@ class the_matrix:
                 r = myarray.sensors[j].pos
                 b = mycube.b(r)
                 for k in range(3):
-                    self.m[i,j*3+k]=b[k]*1.e9 # convert to nT here
+                    self.m[i,j*3+k]=b[k]
             mycube.set_independent_current(i,0.0)
 
     def check_field_graphically(self,mycube,myarray):
@@ -428,8 +442,8 @@ print(mycube.b(r))
 print(mycube.b_prime(0,0,0))
 
 from scipy.optimize import curve_fit
-min_field=-1.e-6
-max_field=2.e-6
+min_field=-2.
+max_field=+2.
 
 fig7,(ax71)=plt.subplots(nrows=1)
 
@@ -456,6 +470,8 @@ ax71.plot(points1d,bz1d,label='$B_z(x,0,0)$')
 bx1d,by1d,bz1d=mycube.b_prime(0.,0.,points1d)
 fitgraph(points1d,bz1d,ax71)
 ax71.plot(points1d,bz1d,label='$B_z(0,0,z)$')
+#bz1d_target=sp.fPiz(0.,0.,points1d)
+#ax71.plot(points1d,bz1d_target,label='target $B_z(0,0,z)$')
 
 ax71.axis((-.5,.5,min_field,max_field))
 ax71.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
