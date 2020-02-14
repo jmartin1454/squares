@@ -181,7 +181,7 @@ class sensor:
     def __init__(self,pos):
         self.pos = pos
 
-sp=scalarpotential(0,0)
+sp=scalarpotential(2,0)
 print("Sigma in spherical coordinates is %s"%sp.Sigma_spherical)
 print("Sigma in cartesian coordinates is %s"%sp.Sigma)
 
@@ -231,18 +231,12 @@ class sensorarray:
         the_vector=np.zeros((self.numsensors*3))
         for j in range(myarray.numsensors):
             r = myarray.sensors[j].pos
-            #b = harmonic(r)
-            
             b=np.array([sp.fPix(r[0],r[1],r[2]),
                         sp.fPiy(r[0],r[1],r[2]),
                         sp.fPiz(r[0],r[1],r[2])])
             for k in range(3):
                 the_vector[j*3+k]=b[k]
         return the_vector
-
-def harmonic(r):
-    return np.array([0.,0.,1.e-6])
-
 
 
 # test of sensorarray class
@@ -268,12 +262,12 @@ import matplotlib.pyplot as plt
 
 mpl.rcParams['legend.fontsize'] = 10
 
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-mycube.draw_coils(ax)
-myarray.draw_sensors(ax)
-ax.legend()
-plt.show()
+#fig = plt.figure()
+#ax = fig.gca(projection='3d')
+#mycube.draw_coils(ax)
+#myarray.draw_sensors(ax)
+#ax.legend()
+#plt.show()
 
 
 print(mycube.b(myarray.sensors[0].pos))
@@ -458,8 +452,7 @@ def fitgraph(xdata,ydata,ax):
     print(popt)
     ax.plot(points1d,fiteven(xdata,*popt),'r--',label='$p_0$=%2.1e,$p_2$=%2.1e,$p_4$=%2.1e,$p_6$=%2.1e'%tuple(popt))
 
-print('In case you are interested, 4*pi/10 is %f'%(4.*pi/10))
-
+# scans along each axis
 points1d=np.mgrid[-1:1:101j]
 bx1d,by1d,bz1d=mycube.b_prime(0.,points1d,0.)
 fitgraph(points1d,bz1d,ax71)
@@ -470,8 +463,10 @@ ax71.plot(points1d,bz1d,label='$B_z(x,0,0)$')
 bx1d,by1d,bz1d=mycube.b_prime(0.,0.,points1d)
 fitgraph(points1d,bz1d,ax71)
 ax71.plot(points1d,bz1d,label='$B_z(0,0,z)$')
-#bz1d_target=sp.fPiz(0.,0.,points1d)
-#ax71.plot(points1d,bz1d_target,label='target $B_z(0,0,z)$')
+
+# target field
+bz1d_target=sp.fPiz(0.,0.,points1d)*np.ones(np.shape(points1d))
+ax71.plot(points1d,bz1d_target,label='target $B_z(0,0,z)$')
 
 ax71.axis((-.5,.5,min_field,max_field))
 ax71.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
