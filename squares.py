@@ -181,7 +181,7 @@ class sensor:
     def __init__(self,pos):
         self.pos = pos
 
-sp=scalarpotential(2,0)
+sp=scalarpotential(2,-3)
 print("Sigma in spherical coordinates is %s"%sp.Sigma_spherical)
 print("Sigma in cartesian coordinates is %s"%sp.Sigma)
 
@@ -262,12 +262,12 @@ import matplotlib.pyplot as plt
 
 mpl.rcParams['legend.fontsize'] = 10
 
-#fig = plt.figure()
-#ax = fig.gca(projection='3d')
-#mycube.draw_coils(ax)
-#myarray.draw_sensors(ax)
-#ax.legend()
-#plt.show()
+fig = plt.figure()
+ax = fig.gca(projection='3d')
+mycube.draw_coils(ax)
+myarray.draw_sensors(ax)
+ax.legend()
+plt.show()
 
 
 print(mycube.b(myarray.sensors[0].pos))
@@ -305,7 +305,7 @@ class the_matrix:
 
         # inverse of capital_M
         self.Minv=self.VT.T.dot(self.D.T).dot(self.U.T)
-        self.Minv=np.linalg.pinv(self.capital_M)
+        #self.Minv=np.linalg.pinv(self.capital_M)
         
         # now gets to fixin'
         # remove just the last mode
@@ -418,7 +418,7 @@ class the_matrix:
 mymatrix = the_matrix(mycube,myarray)
 
 print(mymatrix.condition)
-#mymatrix.show_matrices()
+mymatrix.show_matrices()
 
 # Set up vector of desired fields
 
