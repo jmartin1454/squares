@@ -3,8 +3,9 @@
 To install:
 
 1.  git clone
-2.  git submodule init
-3.  git submodule update
+2.  cd squares
+3.  git submodule init
+4.  git submodule update
 
 Then run squarespeed.py.
 
