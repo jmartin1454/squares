@@ -12,7 +12,7 @@ Then run squarespeed.py.
 What the code does:
 - sets up an array of coils inscribed on a cube
 - sets up an array of fluxgates distributed throughout a smaller cube
-- calculates the matrix in B=M*I by setting each I in turn and measuring B
+- calculates the matrix in B=M*I by setting each coil current I in turn and measuring B at each sensor position.
 - inverts the matrix, carefully excising the zero mode.
 - selects a target field B_target (uses the Pis library)
 - calculates I_set = M^{-1} B_target and sets those currents on the cube
