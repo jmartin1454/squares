@@ -6,6 +6,8 @@
 # updating to solve the zero mode issue.  Will now update to use the
 # patchlib submodule.
 
+# Fri Feb 14 11:45:17 CST 2020 Jeff speeding up code by improving the
+# sensorarray class to use numpy structures.
 
 from scipy.constants import mu_0, pi
 import numpy as np
@@ -83,6 +85,11 @@ class coilcube:
         for i in range(self.numcoils):
             self.set_independent_current(i,0.0)
             
+    def set_common_current(self,curr):
+        # set all currents to curr
+        for i in range(self.numcoils):
+            self.set_independent_current(i,curr)
+            
     def draw_coil(self,number,ax):
         coil = self.coil(number)
         points = coil.points + (coil.points[0],)
@@ -134,53 +141,7 @@ class face:
                 coilnum = coilnum + 1
         self.coilnum = coilnum
 
-# test of face class -- made a slight change after this test
-
-# Halliday & Resnick, 10th ed., question 29.83
-a = 0.08
-i = 10.0
-p0 = np.array([0,0,0])
-p1 = np.array([a,0,0])
-p2 = np.array([a,-a,0])
-p3 = np.array([0,-a,0])
-points = (p0,p1,p2,p3)
-r = np.array([a/4,-a/4,0])
-print(b_loop(i,points,r))
-
-# p0 is kind of like the origin; p1 and p3 are kind of like basis
-# vectors, defining the sides of the rectangular face, whose corner is
-# p0
-points = (p0,p1,p3)
-thisface = face(2,2,points)
-print(thisface.coilnum)
-print(thisface.coil[0].points)
-print(thisface.coil[1].points)
-print(thisface.coil[2].points)
-print(thisface.coil[3].points)
-
-# test of coilcube class
-
-# again p0 is like the origin; p1, p2, and p3 define the x, y, and z
-# (or whatever order) sides of the cube
-print("Coilcube test")
-a = 1.0
-p0 = np.array([-a/2,-a/2,-a/2])
-p1 = p0 + np.array([a,0,0])
-p2 = p0 + np.array([0,a,0])
-p3 = p0 + np.array([0,0,a])
-points = (p0,p1,p2,p3)
-print('hello')
-print(points)
-mycube = coilcube(3,3,3,points)
-#print(mycube.face[1].coil[2].corners)
-#print(mycube.coil(6).corners)
-#print(mycube.coil(6).current)
-print(mycube.numcoils)
-
-class sensor:
-    def __init__(self,pos):
-        self.pos = pos
-
+        
 sp=scalarpotential(2,-3)
 print("Sigma in spherical coordinates is %s"%sp.Sigma_spherical)
 print("Sigma in cartesian coordinates is %s"%sp.Sigma)
@@ -189,11 +150,25 @@ print("Pix is %s"%sp.Pix)
 print("Piy is %s"%sp.Piy)
 print("Piz is %s"%sp.Piz)
 
+a = 1.0
+p0 = np.array([-a/2,-a/2,-a/2])
+p1 = p0 + np.array([a,0,0])
+p2 = p0 + np.array([0,a,0])
+p3 = p0 + np.array([0,0,a])
+points = (p0,p1,p2,p3)
+mycube=coilcube(5,5,5,points)
+
+class sensor:
+    def __init__(self,pos):
+        self.pos = pos
+
 class sensorarray:
     def __init__(self,xdim,ydim,zdim,corners):
         x = corners[1]-corners[0]
         y = corners[2]-corners[0]
         z = corners[3]-corners[0]
+        #self.sensorgrid=np.mgrid[-a:a:xdim*1j,-a:a:ydim*1j,-a:a:zdim*1j]
+        #print(self.sensorgrid)
         self.sensors = []
         if(xdim==1 and ydim==1 and zdim==1):
             pos = corners[0]+x/2+y/2
@@ -246,7 +221,7 @@ p1 = p0 + np.array([a,0,0])
 p2 = p0 + np.array([0,a,0])
 p3 = p0 + np.array([0,0,a])
 points = (p0,p1,p2,p3)
-myarray = sensorarray(3,3,3,points)
+myarray = sensorarray(10,10,10,points)
 print(myarray.sensors[0].pos)
 print(myarray.numsensors)
 print(myarray.sensors[myarray.numsensors-1].pos)
@@ -280,7 +255,8 @@ from matplotlib import cm
 class the_matrix:
     def __init__(self,mycube,myarray):
         self.m=np.zeros((mycube.numcoils,myarray.numsensors*3))
-        self.fill(mycube,myarray)
+        #self.fill(mycube,myarray)
+        self.fillspeed(mycube,myarray)
         self.condition = np.linalg.cond(self.m)
 
         # for some reason I chose to create the transpose of the usual
@@ -316,7 +292,6 @@ class the_matrix:
         self.Minvp=self.VTp.T.dot(self.Dp.T).dot(self.U.T)
         
     def fill(self,mycube,myarray):
-        # fill m, units of nT/A
         for i in range(mycube.numcoils):
             mycube.set_independent_current(i,1.0)
             for j in range(myarray.numsensors):
@@ -326,6 +301,18 @@ class the_matrix:
                     self.m[i,j*3+k]=b[k]
             mycube.set_independent_current(i,0.0)
 
+    def fillspeed(self,mycube,myarray):
+        mycube.set_common_current(1.0)
+        for i in range(mycube.numcoils):
+            print("Doing coil %d"%i)
+            for j in range(myarray.numsensors):
+                r = myarray.sensors[j].pos
+                bx,by,bz=mycube.coil(i).b_prime(r[0],r[1],r[2])
+                b=[bx,by,bz]
+                for k in range(3):
+                    self.m[i,j*3+k]=b[k]
+        mycube.zero_currents()
+            
     def check_field_graphically(self,mycube,myarray):
         # test each coil by graphing field at each sensor
         for i in range(mycube.numcoils):
