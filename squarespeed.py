@@ -89,7 +89,7 @@ class coilcube:
         # set all currents to curr
         for i in range(self.numcoils):
             self.set_independent_current(i,curr)
-            
+
     def draw_coil(self,number,ax):
         coil = self.coil(number)
         points = coil.points + (coil.points[0],)
@@ -97,6 +97,7 @@ class coilcube:
         y = ([p[1] for p in points])
         z = ([p[2] for p in points])
         ax.plot(x,y,z,label='coil')
+        #ax.plot(x,y,z,label='coil')
 
     def draw_coils(self,ax):
         for number in range(self.numcoils):
@@ -241,7 +242,10 @@ fig = plt.figure()
 ax = fig.gca(projection='3d')
 mycube.draw_coils(ax)
 myarray.draw_sensors(ax)
-ax.legend()
+#ax.legend()
+ax.set_xlabel('x (m)')
+ax.set_ylabel('y (m)')
+ax.set_zlabel('z (m)')
 plt.show()
 
 
