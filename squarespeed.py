@@ -157,7 +157,8 @@ p1 = p0 + np.array([a,0,0])
 p2 = p0 + np.array([0,a,0])
 p3 = p0 + np.array([0,0,a])
 points = (p0,p1,p2,p3)
-mycube=coilcube(5,5,5,points)
+#mycube=coilcube(5,5,5,points)
+mycube=coilcube(3,3,3,points)
 
 class sensor:
     def __init__(self,pos):
@@ -222,7 +223,7 @@ p1 = p0 + np.array([a,0,0])
 p2 = p0 + np.array([0,a,0])
 p3 = p0 + np.array([0,0,a])
 points = (p0,p1,p2,p3)
-myarray = sensorarray(10,10,10,points)
+myarray = sensorarray(3,3,3,points)
 print(myarray.sensors[0].pos)
 print(myarray.numsensors)
 print(myarray.sensors[myarray.numsensors-1].pos)
