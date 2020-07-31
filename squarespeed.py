@@ -14,6 +14,36 @@ import numpy as np
 from patchlib.patch import *
 from Pis.Pislib import *
 
+from optparse import OptionParser
+
+parser = OptionParser()
+
+parser.add_option("-c", "--ncoils", dest="ncoils", default=3,
+                  help="nc where total coils is c=nc*nc*6")
+
+parser.add_option("-s", "--nsensors", dest="nsensors", default=3,
+                  help="ns where total sensor axes is s = 3*ns^3")
+
+parser.add_option("-l", "--ell", dest="l", default=2,
+                  help="l for spherical harmonic")
+
+parser.add_option("-m", "--em", dest="m", default=0,
+                  help="m for spherical harmonic")
+
+parser.add_option("-M", "--matrices", dest="matrices", default=False,
+                  action="store_true",
+                  help="show matrices")
+
+parser.add_option("-t", "--traces", dest="traces", default=False,
+                  action="store_true",
+                  help="show 3D view of coils and sensors")
+
+
+
+(options,args)=parser.parse_args()
+
+
+
 class coilcube:
     def __init__(self,xdim,ydim,zdim,corners):
         self.xdim = xdim
@@ -142,8 +172,10 @@ class face:
                 coilnum = coilnum + 1
         self.coilnum = coilnum
 
-        
-sp=scalarpotential(2,-3)
+
+l=int(options.l)
+m=int(options.m)
+sp=scalarpotential(l,m)
 print("Sigma in spherical coordinates is %s"%sp.Sigma_spherical)
 print("Sigma in cartesian coordinates is %s"%sp.Sigma)
 
@@ -157,8 +189,9 @@ p1 = p0 + np.array([a,0,0])
 p2 = p0 + np.array([0,a,0])
 p3 = p0 + np.array([0,0,a])
 points = (p0,p1,p2,p3)
-#mycube=coilcube(5,5,5,points)
-mycube=coilcube(3,3,3,points)
+
+ncoils=int(options.ncoils)
+mycube=coilcube(ncoils,ncoils,ncoils,points)
 
 class sensor:
     def __init__(self,pos):
@@ -223,7 +256,9 @@ p1 = p0 + np.array([a,0,0])
 p2 = p0 + np.array([0,a,0])
 p3 = p0 + np.array([0,0,a])
 points = (p0,p1,p2,p3)
-myarray = sensorarray(3,3,3,points)
+
+nsensors=int(options.nsensors)
+myarray = sensorarray(nsensors,nsensors,nsensors,points)
 print(myarray.sensors[0].pos)
 print(myarray.numsensors)
 print(myarray.sensors[myarray.numsensors-1].pos)
@@ -239,21 +274,22 @@ import matplotlib.pyplot as plt
 
 mpl.rcParams['legend.fontsize'] = 10
 
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-mycube.draw_coils(ax)
-myarray.draw_sensors(ax)
-#ax.legend()
-ax.set_xlabel('x (m)')
-ax.set_ylabel('y (m)')
-ax.set_zlabel('z (m)')
-plt.show()
+if(options.traces):
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    mycube.draw_coils(ax)
+    myarray.draw_sensors(ax)
+    #ax.legend()
+    ax.set_xlabel('x (m)')
+    ax.set_ylabel('y (m)')
+    ax.set_zlabel('z (m)')
+    plt.show()
 
 
-print(mycube.b(myarray.sensors[0].pos))
-mycube.coil(0).set_current(1.0)
-print(mycube.b(myarray.sensors[0].pos))
-mycube.coil(0).set_current(0.0)
+# print(mycube.b(myarray.sensors[0].pos))
+# mycube.coil(0).set_current(1.0)
+# print(mycube.b(myarray.sensors[0].pos))
+# mycube.coil(0).set_current(0.0)
 
 from matplotlib import cm
 
@@ -410,7 +446,8 @@ class the_matrix:
 mymatrix = the_matrix(mycube,myarray)
 
 print(mymatrix.condition)
-mymatrix.show_matrices()
+if(options.matrices):
+    mymatrix.show_matrices()
 
 # Set up vector of desired fields
 
@@ -469,6 +506,9 @@ ax71.plot(points1d,bz1d_yscan,label='$B_z(0,y,0)$')
 ax71.plot(points1d,bz1d_target_yscan,label='target $B_z(0,y,0)$')
 ax71.plot(points1d,bz1d_zscan,label='$B_z(0,0,z)$')
 ax71.plot(points1d,bz1d_target_zscan,label='target $B_z(0,0,z)$')
+ax71.set_xlabel('x, y, or z (m)')
+ax71.set_ylabel('$\Pi_z=%s$'%(sp.Piz))
+
 
 ax81.plot(points1d,by1d_xscan,label='$B_y(x,0,0)$')
 ax81.plot(points1d,by1d_target_xscan,label='target $B_y(x,0,0)$')
@@ -476,6 +516,8 @@ ax81.plot(points1d,by1d_yscan,label='$B_y(0,y,0)$')
 ax81.plot(points1d,by1d_target_yscan,label='target $B_y(0,y,0)$')
 ax81.plot(points1d,by1d_zscan,label='$B_y(0,0,z)$')
 ax81.plot(points1d,by1d_target_zscan,label='target $B_y(0,0,z)$')
+ax81.set_xlabel('x, y, or z (m)')
+ax81.set_ylabel('$\Pi_y=%s$'%(sp.Piy))
 
 ax91.plot(points1d,bx1d_xscan,label='$B_x(x,0,0)$')
 ax91.plot(points1d,bx1d_target_xscan,label='target $B_x(x,0,0)$')
@@ -483,11 +525,13 @@ ax91.plot(points1d,bx1d_yscan,label='$B_x(0,y,0)$')
 ax91.plot(points1d,bx1d_target_yscan,label='target $B_x(0,y,0)$')
 ax91.plot(points1d,bx1d_zscan,label='$B_x(0,0,z)$')
 ax91.plot(points1d,bx1d_target_zscan,label='target $B_x(0,0,z)$')
+ax91.set_xlabel('x, y, or z (m)')
+ax91.set_ylabel('$\Pi_x=%s$'%(sp.Pix))
 
-min_field=-2.
-max_field=+2.
+#min_field=-2.
+#max_field=+2.
 #ax71.axis((-.5,.5,min_field,max_field))
-ax71.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+#ax71.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
 ax71.legend()
 ax81.legend()
 ax91.legend()
