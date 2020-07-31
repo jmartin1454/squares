@@ -507,7 +507,8 @@ ax71.plot(points1d,bz1d_target_yscan,label='target $B_z(0,y,0)$')
 ax71.plot(points1d,bz1d_zscan,label='$B_z(0,0,z)$')
 ax71.plot(points1d,bz1d_target_zscan,label='target $B_z(0,0,z)$')
 ax71.set_xlabel('x, y, or z (m)')
-ax71.set_ylabel('$\Pi_z=%s$'%(sp.Piz))
+from sympy import latex
+ax71.set_ylabel('$B_z=\Pi_{z,%d,%d}=%s$'%(l,m,latex(sp.Piz)))
 
 
 ax81.plot(points1d,by1d_xscan,label='$B_y(x,0,0)$')
@@ -517,7 +518,7 @@ ax81.plot(points1d,by1d_target_yscan,label='target $B_y(0,y,0)$')
 ax81.plot(points1d,by1d_zscan,label='$B_y(0,0,z)$')
 ax81.plot(points1d,by1d_target_zscan,label='target $B_y(0,0,z)$')
 ax81.set_xlabel('x, y, or z (m)')
-ax81.set_ylabel('$\Pi_y=%s$'%(sp.Piy))
+ax81.set_ylabel('$B_y=\Pi_{y,%d,%d}=%s$'%(l,m,latex(sp.Piy)))
 
 ax91.plot(points1d,bx1d_xscan,label='$B_x(x,0,0)$')
 ax91.plot(points1d,bx1d_target_xscan,label='target $B_x(x,0,0)$')
@@ -526,7 +527,7 @@ ax91.plot(points1d,bx1d_target_yscan,label='target $B_x(0,y,0)$')
 ax91.plot(points1d,bx1d_zscan,label='$B_x(0,0,z)$')
 ax91.plot(points1d,bx1d_target_zscan,label='target $B_x(0,0,z)$')
 ax91.set_xlabel('x, y, or z (m)')
-ax91.set_ylabel('$\Pi_x=%s$'%(sp.Pix))
+ax91.set_ylabel('$B_x=\Pi_{x,%d,%d}=%s$'%(l,m,latex(sp.Pix)))
 
 #min_field=-2.
 #max_field=+2.
