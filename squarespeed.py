@@ -510,7 +510,6 @@ ax71.set_xlabel('x, y, or z (m)')
 from sympy import latex
 ax71.set_ylabel('$B_z=\Pi_{z,%d,%d}=%s$'%(l,m,latex(sp.Piz)))
 
-
 ax81.plot(points1d,by1d_xscan,label='$B_y(x,0,0)$')
 ax81.plot(points1d,by1d_target_xscan,label='target $B_y(x,0,0)$')
 ax81.plot(points1d,by1d_yscan,label='$B_y(0,y,0)$')
