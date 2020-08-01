@@ -9,10 +9,15 @@
 # Fri Feb 14 11:45:17 CST 2020 Jeff speeding up code by improving the
 # sensorarray class to use numpy structures.
 
+# Sat Aug 1 12:40:53 CDT 2020 Jeff added command line options and
+# improved graphs
+
+
 from scipy.constants import mu_0, pi
 import numpy as np
 from patchlib.patch import *
 from Pis.Pislib import *
+from dipole import *
 
 from optparse import OptionParser
 
@@ -34,10 +39,21 @@ parser.add_option("-M", "--matrices", dest="matrices", default=False,
                   action="store_true",
                   help="show matrices")
 
+parser.add_option("-d", "--dipole", dest="dipole", default=False,
+                  action="store_true",
+                  help="use dipole field")
+
 parser.add_option("-t", "--traces", dest="traces", default=False,
                   action="store_true",
                   help="show 3D view of coils and sensors")
 
+parser.add_option("-r", "--residuals", dest="residuals", default=False,
+                  action="store_true",
+                  help="show residuals in ROI")
+
+
+d=dipole(1.2,0,0,0,0,1)
+print(d.b(0,0,0))
 
 
 (options,args)=parser.parse_args()
@@ -183,12 +199,21 @@ print("Pix is %s"%sp.Pix)
 print("Piy is %s"%sp.Piy)
 print("Piz is %s"%sp.Piz)
 
-a = 1.0
-p0 = np.array([-a/2,-a/2,-a/2])
-p1 = p0 + np.array([a,0,0])
-p2 = p0 + np.array([0,a,0])
-p3 = p0 + np.array([0,0,a])
-points = (p0,p1,p2,p3)
+if(options.dipole):
+    bxtarget=d.bx
+    bytarget=d.by
+    bztarget=d.bz
+else:
+    bxtarget=sp.fPix
+    bytarget=sp.fPiy
+    bztarget=sp.fPiz
+
+a=1.0
+p0=np.array([-a/2,-a/2,-a/2])
+p1=p0+np.array([a,0,0])
+p2=p0+np.array([0,a,0])
+p3=p0+np.array([0,0,a])
+points=(p0,p1,p2,p3)
 
 ncoils=int(options.ncoils)
 mycube=coilcube(ncoils,ncoils,ncoils,points)
@@ -241,24 +266,27 @@ class sensorarray:
         the_vector=np.zeros((self.numsensors*3))
         for j in range(myarray.numsensors):
             r = myarray.sensors[j].pos
-            b=np.array([sp.fPix(r[0],r[1],r[2]),
-                        sp.fPiy(r[0],r[1],r[2]),
-                        sp.fPiz(r[0],r[1],r[2])])
+            b=np.array([bxtarget(r[0],r[1],r[2]),
+                        bytarget(r[0],r[1],r[2]),
+                        bztarget(r[0],r[1],r[2])])
+            #b=np.array([sp.fPix(r[0],r[1],r[2]),
+            #            sp.fPiy(r[0],r[1],r[2]),
+            #            sp.fPiz(r[0],r[1],r[2])])
             for k in range(3):
                 the_vector[j*3+k]=b[k]
         return the_vector
 
 
-# test of sensorarray class
-a = 0.5
-p0 = np.array([-a/2,-a/2,-a/2])
-p1 = p0 + np.array([a,0,0])
-p2 = p0 + np.array([0,a,0])
-p3 = p0 + np.array([0,0,a])
-points = (p0,p1,p2,p3)
+# set up array of sensors
+a_sensors=0.5
+p0=np.array([-a_sensors/2,-a_sensors/2,-a_sensors/2])
+p1=p0+np.array([a_sensors,0,0])
+p2=p0+np.array([0,a_sensors,0])
+p3=p0+np.array([0,0,a_sensors])
+points=(p0,p1,p2,p3)
 
 nsensors=int(options.nsensors)
-myarray = sensorarray(nsensors,nsensors,nsensors,points)
+myarray=sensorarray(nsensors,nsensors,nsensors,points)
 print(myarray.sensors[0].pos)
 print(myarray.numsensors)
 print(myarray.sensors[myarray.numsensors-1].pos)
@@ -396,49 +424,6 @@ class the_matrix:
         ax7.imshow(self.Dp,cmap=cm.bwr)
         ax8.imshow(self.VTp,cmap=cm.bwr)
         ax9.imshow(self.Minvp,cmap=cm.bwr)
-        '''
-        ax1.set_xticks(np.arange(self.m.shape[1]))
-        ax1.set_yticks(np.arange(self.m.shape[0]))
-        ax1.set_xlabel('Fluxgate positions')
-        ax1.set_ylabel('Coils')
-        ax1.set_title('Matrix M* (nT/A) ('+str(len(np.arange(self.m.shape[0])))+'coils * '+str(len(np.arange(self.m.shape[1])))+'sensors)')
-
-        ax2.set_xticks(np.arange(self.capital_M1.shape[1]))
-        ax2.set_yticks(np.arange(self.capital_M1.shape[0]))
-        ax2.set_xlabel('Fluxgate positions')
-        ax2.set_ylabel('Coils')
-        #ax2.set_yticklabels(row_labels)
-        #ax2.set_title('Pseudoinverse of M (*'+str(mps)+') (A/nT) ('+str(len(np.arange(self.m.shape[0])))+'coils * '+str(len(np.arange(self.m.shape[1])))+'sensors)')
-        ax2.set_title('Pseudoinverse of M ('+str(len(np.arange(self.m.shape[0])))+'coils * '+str(len(np.arange(self.m.shape[1])))+'sensors)')
-
-        ax3.set_xticks(np.arange(self.Vmat.shape[1]))
-        ax3.set_yticks(np.arange(self.Vmat.shape[0]))
-        ax3.set_title('V-Sqrt of eigenvalues of M*M & MM* ('+str(len(np.arange(self.m.shape[1])))+'* '+str(len(np.arange(self.m.shape[0])))+')')
-
-        ax4.set_xticks(np.arange(self.U.shape[1]))
-        ax4.set_yticks(np.arange(self.U.shape[0]))
-        #ax4.set_title('U-Orthonormal eigenvectors(*'+str(mp4s)+') of MM* ('+str(len(np.arange(self.m.shape[1])))+'*'+str(len(np.arange(self.m.shape[1])))+')')
-        ax4.set_title('U-Orthonormal eigenvectors of MM* ('+str(len(np.arange(self.m.shape[1])))+'*'+str(len(np.arange(self.m.shape[1])))+')')
-        
-        ax6.set_xticks(np.arange(self.Wt.shape[1]))
-        ax6.set_yticks(np.arange(self.Wt.shape[0]))
-        #ax6.set_title('W*-Orthonormal eigenvectors(*'+str(mp6s)+') of M*M ('+str(len(np.arange(self.m.shape[0])))+'*'+str(len(np.arange(self.m.shape[0])))+')')
-        ax6.set_title('W*-Orthonormal eigenvectors of M*M ('+str(len(np.arange(self.m.shape[0])))+'*'+str(len(np.arange(self.m.shape[0])))+')')
-
-        #for c in range (0,len(np.arange(self.m.shape[0]))):
-	#    for s in range (0,len(np.arange(self.m.shape[1]))):
-	#	ax1.text(s, c, int(self.m[c][s]), va='center', ha='center', rotation=90)
-	#	ax2.text(s, c, int(self.capital_M1[c][s]*mp), va='center', ha='center', rotation=90)
-	#	ax3.text(c, s, int(self.Vmat[s][c]), va='center', ha='center')
-
-        #for c in range (0,len(np.arange(self.U.shape[0]))):
-	#    for s in range (0,len(np.arange(self.U.shape[1]))):
-	#	ax4.text(s, c, int(self.U[c][s]*mp4), va='center', ha='center')
-
-        #for c in range (0,len(np.arange(self.Wt.shape[0]))):
-	#    for s in range (0,len(np.arange(self.Wt.shape[1]))):
-	#	ax6.text(s, c, int(self.Wt[c][s]*mp6), va='center', ha='center')
-        '''
 
         plt.show()
 
@@ -488,17 +473,17 @@ bx1d_yscan,by1d_yscan,bz1d_yscan=mycube.b_prime(0.,points1d,0.)
 bx1d_zscan,by1d_zscan,bz1d_zscan=mycube.b_prime(0.,0.,points1d)
 
 # target field
-bx1d_target_xscan=sp.fPix(points1d,0.,0.)*np.ones(np.shape(points1d))
-bx1d_target_yscan=sp.fPix(0.,points1d,0.)*np.ones(np.shape(points1d))
-bx1d_target_zscan=sp.fPix(0.,0.,points1d)*np.ones(np.shape(points1d))
+bx1d_target_xscan=bxtarget(points1d,0.,0.)*np.ones(np.shape(points1d))
+bx1d_target_yscan=bxtarget(0.,points1d,0.)*np.ones(np.shape(points1d))
+bx1d_target_zscan=bxtarget(0.,0.,points1d)*np.ones(np.shape(points1d))
 
-by1d_target_xscan=sp.fPiy(points1d,0.,0.)*np.ones(np.shape(points1d))
-by1d_target_yscan=sp.fPiy(0.,points1d,0.)*np.ones(np.shape(points1d))
-by1d_target_zscan=sp.fPiy(0.,0.,points1d)*np.ones(np.shape(points1d))
+by1d_target_xscan=bytarget(points1d,0.,0.)*np.ones(np.shape(points1d))
+by1d_target_yscan=bytarget(0.,points1d,0.)*np.ones(np.shape(points1d))
+by1d_target_zscan=bytarget(0.,0.,points1d)*np.ones(np.shape(points1d))
 
-bz1d_target_xscan=sp.fPiz(points1d,0.,0.)*np.ones(np.shape(points1d))
-bz1d_target_yscan=sp.fPiz(0.,points1d,0.)*np.ones(np.shape(points1d))
-bz1d_target_zscan=sp.fPiz(0.,0.,points1d)*np.ones(np.shape(points1d))
+bz1d_target_xscan=bztarget(points1d,0.,0.)*np.ones(np.shape(points1d))
+bz1d_target_yscan=bztarget(0.,points1d,0.)*np.ones(np.shape(points1d))
+bz1d_target_zscan=bztarget(0.,0.,points1d)*np.ones(np.shape(points1d))
 
 ax71.plot(points1d,bz1d_xscan,label='$B_z(x,0,0)$')
 ax71.plot(points1d,bz1d_target_xscan,label='target $B_z(x,0,0)$')
@@ -508,7 +493,14 @@ ax71.plot(points1d,bz1d_zscan,label='$B_z(0,0,z)$')
 ax71.plot(points1d,bz1d_target_zscan,label='target $B_z(0,0,z)$')
 ax71.set_xlabel('x, y, or z (m)')
 from sympy import latex
-ax71.set_ylabel('$B_z=\Pi_{z,%d,%d}=%s$'%(l,m,latex(sp.Piz)))
+if(options.dipole):
+    ax71.set_ylabel('$B_z=dipole$')
+else:
+    ax71.set_ylabel('$B_z=\Pi_{z,%d,%d}=%s$'%(l,m,latex(sp.Piz)))
+ax71.axvline(x=a/2,color='black',linestyle='--')
+ax71.axvline(x=-a/2,color='black',linestyle='--')
+ax71.axvline(x=a_sensors/2,color='red',linestyle='--')
+ax71.axvline(x=-a_sensors/2,color='red',linestyle='--')
 
 ax81.plot(points1d,by1d_xscan,label='$B_y(x,0,0)$')
 ax81.plot(points1d,by1d_target_xscan,label='target $B_y(x,0,0)$')
@@ -517,7 +509,14 @@ ax81.plot(points1d,by1d_target_yscan,label='target $B_y(0,y,0)$')
 ax81.plot(points1d,by1d_zscan,label='$B_y(0,0,z)$')
 ax81.plot(points1d,by1d_target_zscan,label='target $B_y(0,0,z)$')
 ax81.set_xlabel('x, y, or z (m)')
-ax81.set_ylabel('$B_y=\Pi_{y,%d,%d}=%s$'%(l,m,latex(sp.Piy)))
+if(options.dipole):
+    ax81.set_ylabel('$B_y=dipole$')
+else:
+    ax81.set_ylabel('$B_y=\Pi_{y,%d,%d}=%s$'%(l,m,latex(sp.Piy)))
+ax81.axvline(x=a/2,color='black',linestyle='--')
+ax81.axvline(x=-a/2,color='black',linestyle='--')
+ax81.axvline(x=a_sensors/2,color='red',linestyle='--')
+ax81.axvline(x=-a_sensors/2,color='red',linestyle='--')
 
 ax91.plot(points1d,bx1d_xscan,label='$B_x(x,0,0)$')
 ax91.plot(points1d,bx1d_target_xscan,label='target $B_x(x,0,0)$')
@@ -526,7 +525,14 @@ ax91.plot(points1d,bx1d_target_yscan,label='target $B_x(0,y,0)$')
 ax91.plot(points1d,bx1d_zscan,label='$B_x(0,0,z)$')
 ax91.plot(points1d,bx1d_target_zscan,label='target $B_x(0,0,z)$')
 ax91.set_xlabel('x, y, or z (m)')
-ax91.set_ylabel('$B_x=\Pi_{x,%d,%d}=%s$'%(l,m,latex(sp.Pix)))
+if(options.dipole):
+    ax91.set_ylabel('$B_x=dipole$')
+else:
+    ax91.set_ylabel('$B_x=\Pi_{x,%d,%d}=%s$'%(l,m,latex(sp.Pix)))
+ax91.axvline(x=a/2,color='black',linestyle='--')
+ax91.axvline(x=-a/2,color='black',linestyle='--')
+ax91.axvline(x=a_sensors/2,color='red',linestyle='--')
+ax91.axvline(x=-a_sensors/2,color='red',linestyle='--')
 
 #min_field=-2.
 #max_field=+2.
@@ -535,5 +541,32 @@ ax91.set_ylabel('$B_x=\Pi_{x,%d,%d}=%s$'%(l,m,latex(sp.Pix)))
 ax71.legend()
 ax81.legend()
 ax91.legend()
+
+if(options.residuals):
+    mask=(points1d>=-a_sensors/2)&(points1d<=a_sensors/2)
+
+    ax101=plt.figure(101)
+    plt.plot(points1d[mask],bz1d_xscan[mask]-bz1d_target_xscan[mask],label='residual $B_z(x,0,0)$')
+    plt.plot(points1d[mask],bz1d_yscan[mask]-bz1d_target_yscan[mask],label='residual $B_z(0,y,0)$')
+    plt.plot(points1d[mask],bz1d_zscan[mask]-bz1d_target_zscan[mask],label='residual $B_z(0,0,z)$')
+    plt.xlabel('x, y, or z (m)')
+    plt.ylabel('residual $B_z$ (true-target)')
+    plt.legend()
+
+    ax102=plt.figure(102)
+    plt.plot(points1d[mask],by1d_xscan[mask]-by1d_target_xscan[mask],label='residual $B_y(x,0,0)$')
+    plt.plot(points1d[mask],by1d_yscan[mask]-by1d_target_yscan[mask],label='residual $B_y(0,y,0)$')
+    plt.plot(points1d[mask],by1d_zscan[mask]-by1d_target_zscan[mask],label='residual $B_y(0,0,z)$')
+    plt.xlabel('x, y, or z (m)')
+    plt.ylabel('residual $B_y$ (true-target)')
+    plt.legend()
+
+    ax103=plt.figure(103)
+    plt.plot(points1d[mask],bx1d_xscan[mask]-bx1d_target_xscan[mask],label='residual $B_x(x,0,0)$')
+    plt.plot(points1d[mask],bx1d_yscan[mask]-bx1d_target_yscan[mask],label='residual $B_x(0,y,0)$')
+    plt.plot(points1d[mask],bx1d_zscan[mask]-bx1d_target_zscan[mask],label='residual $B_x(0,0,z)$')
+    plt.xlabel('x, y, or z (m)')
+    plt.ylabel('residual $B_x$ (true-target)')
+    plt.legend()
 
 plt.show()
