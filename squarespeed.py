@@ -55,9 +55,15 @@ parser.add_option("-z", "--zoom", dest="zoom", default=False,
                   action="store_true",
                   help="zoom to ROI")
 
-d=dipole(1.2,0,0,0,0,1)
-print(d.b(0,0,0))
+parser.add_option("-a", "--axes", dest="axes", default=False,
+                  action="store_true",
+                  help="make graphs along axes")
 
+parser.add_option("-i", "--incells", dest="incells", default=False,
+                  action="store_true",
+                  help="ROI for statistics is in EDM cells")
+
+d=dipole(1.2,0,0,0,0,1)
 
 (options,args)=parser.parse_args()
 
@@ -272,9 +278,6 @@ class sensorarray:
             b=np.array([bxtarget(r[0],r[1],r[2]),
                         bytarget(r[0],r[1],r[2]),
                         bztarget(r[0],r[1],r[2])])
-            #b=np.array([sp.fPix(r[0],r[1],r[2]),
-            #            sp.fPiy(r[0],r[1],r[2]),
-            #            sp.fPiz(r[0],r[1],r[2])])
             for k in range(3):
                 the_vector[j*3+k]=b[k]
         return the_vector
@@ -454,10 +457,6 @@ print(mycube.b_prime(0,0,0))
 
 from scipy.optimize import curve_fit
 
-fig7,(ax71)=plt.subplots(nrows=1)
-fig8,(ax81)=plt.subplots(nrows=1)
-fig9,(ax91)=plt.subplots(nrows=1)
-
 def fiteven(x,p0,p2,p4,p6):
     return p0+p2*x**2+p4*x**4+p6*x**6
 
@@ -493,65 +492,70 @@ if(options.zoom):
 else:
     mask=np.full(np.shape(points1d),True)
 
-ax71.plot(points1d[mask],bz1d_xscan[mask],label='$B_z(x,0,0)$')
-ax71.plot(points1d[mask],bz1d_target_xscan[mask],label='target $B_z(x,0,0)$')
-ax71.plot(points1d[mask],bz1d_yscan[mask],label='$B_z(0,y,0)$')
-ax71.plot(points1d[mask],bz1d_target_yscan[mask],label='target $B_z(0,y,0)$')
-ax71.plot(points1d[mask],bz1d_zscan[mask],label='$B_z(0,0,z)$')
-ax71.plot(points1d[mask],bz1d_target_zscan[mask],label='target $B_z(0,0,z)$')
-ax71.set_xlabel('x, y, or z (m)')
-from sympy import latex
-if(options.dipole):
-    ax71.set_ylabel('$B_z=dipole$')
-else:
-    ax71.set_ylabel('$B_z=\Pi_{z,%d,%d}=%s$'%(l,m,latex(sp.Piz)))
-if(not options.zoom):
-    ax71.axvline(x=a/2,color='black',linestyle='--')
-    ax71.axvline(x=-a/2,color='black',linestyle='--')
-    ax71.axvline(x=a_sensors/2,color='red',linestyle='--')
-    ax71.axvline(x=-a_sensors/2,color='red',linestyle='--')
-
-ax81.plot(points1d[mask],by1d_xscan[mask],label='$B_y(x,0,0)$')
-ax81.plot(points1d[mask],by1d_target_xscan[mask],label='target $B_y(x,0,0)$')
-ax81.plot(points1d[mask],by1d_yscan[mask],label='$B_y(0,y,0)$')
-ax81.plot(points1d[mask],by1d_target_yscan[mask],label='target $B_y(0,y,0)$')
-ax81.plot(points1d[mask],by1d_zscan[mask],label='$B_y(0,0,z)$')
-ax81.plot(points1d[mask],by1d_target_zscan[mask],label='target $B_y(0,0,z)$')
-ax81.set_xlabel('x, y, or z (m)')
-if(options.dipole):
-    ax81.set_ylabel('$B_y=dipole$')
-else:
-    ax81.set_ylabel('$B_y=\Pi_{y,%d,%d}=%s$'%(l,m,latex(sp.Piy)))
-if(not options.zoom):
-    ax81.axvline(x=a/2,color='black',linestyle='--')
-    ax81.axvline(x=-a/2,color='black',linestyle='--')
-    ax81.axvline(x=a_sensors/2,color='red',linestyle='--')
-    ax81.axvline(x=-a_sensors/2,color='red',linestyle='--')
-
-ax91.plot(points1d[mask],bx1d_xscan[mask],label='$B_x(x,0,0)$')
-ax91.plot(points1d[mask],bx1d_target_xscan[mask],label='target $B_x(x,0,0)$')
-ax91.plot(points1d[mask],bx1d_yscan[mask],label='$B_x(0,y,0)$')
-ax91.plot(points1d[mask],bx1d_target_yscan[mask],label='target $B_x(0,y,0)$')
-ax91.plot(points1d[mask],bx1d_zscan[mask],label='$B_x(0,0,z)$')
-ax91.plot(points1d[mask],bx1d_target_zscan[mask],label='target $B_x(0,0,z)$')
-ax91.set_xlabel('x, y, or z (m)')
-if(options.dipole):
-    ax91.set_ylabel('$B_x=dipole$')
-else:
-    ax91.set_ylabel('$B_x=\Pi_{x,%d,%d}=%s$'%(l,m,latex(sp.Pix)))
-if(not options.zoom):
-    ax91.axvline(x=a/2,color='black',linestyle='--')
-    ax91.axvline(x=-a/2,color='black',linestyle='--')
-    ax91.axvline(x=a_sensors/2,color='red',linestyle='--')
-    ax91.axvline(x=-a_sensors/2,color='red',linestyle='--')
-
-ax71.axhline(y=0,color='black')
-ax81.axhline(y=0,color='black')
-ax91.axhline(y=0,color='black')
+if(options.axes):
+    fig7,(ax71)=plt.subplots(nrows=1)
+    fig8,(ax81)=plt.subplots(nrows=1)
+    fig9,(ax91)=plt.subplots(nrows=1)
     
-ax71.legend()
-ax81.legend()
-ax91.legend()
+    ax71.plot(points1d[mask],bz1d_xscan[mask],label='$B_z(x,0,0)$')
+    ax71.plot(points1d[mask],bz1d_target_xscan[mask],label='target $B_z(x,0,0)$')
+    ax71.plot(points1d[mask],bz1d_yscan[mask],label='$B_z(0,y,0)$')
+    ax71.plot(points1d[mask],bz1d_target_yscan[mask],label='target $B_z(0,y,0)$')
+    ax71.plot(points1d[mask],bz1d_zscan[mask],label='$B_z(0,0,z)$')
+    ax71.plot(points1d[mask],bz1d_target_zscan[mask],label='target $B_z(0,0,z)$')
+    ax71.set_xlabel('x, y, or z (m)')
+    from sympy import latex
+    if(options.dipole):
+        ax71.set_ylabel('$B_z=dipole$')
+    else:
+        ax71.set_ylabel('$B_z=\Pi_{z,%d,%d}=%s$'%(l,m,latex(sp.Piz)))
+    if(not options.zoom):
+        ax71.axvline(x=a/2,color='black',linestyle='--')
+        ax71.axvline(x=-a/2,color='black',linestyle='--')
+        ax71.axvline(x=a_sensors/2,color='red',linestyle='--')
+        ax71.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+    ax81.plot(points1d[mask],by1d_xscan[mask],label='$B_y(x,0,0)$')
+    ax81.plot(points1d[mask],by1d_target_xscan[mask],label='target $B_y(x,0,0)$')
+    ax81.plot(points1d[mask],by1d_yscan[mask],label='$B_y(0,y,0)$')
+    ax81.plot(points1d[mask],by1d_target_yscan[mask],label='target $B_y(0,y,0)$')
+    ax81.plot(points1d[mask],by1d_zscan[mask],label='$B_y(0,0,z)$')
+    ax81.plot(points1d[mask],by1d_target_zscan[mask],label='target $B_y(0,0,z)$')
+    ax81.set_xlabel('x, y, or z (m)')
+    if(options.dipole):
+        ax81.set_ylabel('$B_y=dipole$')
+    else:
+        ax81.set_ylabel('$B_y=\Pi_{y,%d,%d}=%s$'%(l,m,latex(sp.Piy)))
+    if(not options.zoom):
+        ax81.axvline(x=a/2,color='black',linestyle='--')
+        ax81.axvline(x=-a/2,color='black',linestyle='--')
+        ax81.axvline(x=a_sensors/2,color='red',linestyle='--')
+        ax81.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+    ax91.plot(points1d[mask],bx1d_xscan[mask],label='$B_x(x,0,0)$')
+    ax91.plot(points1d[mask],bx1d_target_xscan[mask],label='target $B_x(x,0,0)$')
+    ax91.plot(points1d[mask],bx1d_yscan[mask],label='$B_x(0,y,0)$')
+    ax91.plot(points1d[mask],bx1d_target_yscan[mask],label='target $B_x(0,y,0)$')
+    ax91.plot(points1d[mask],bx1d_zscan[mask],label='$B_x(0,0,z)$')
+    ax91.plot(points1d[mask],bx1d_target_zscan[mask],label='target $B_x(0,0,z)$')
+    ax91.set_xlabel('x, y, or z (m)')
+    if(options.dipole):
+        ax91.set_ylabel('$B_x=dipole$')
+    else:
+        ax91.set_ylabel('$B_x=\Pi_{x,%d,%d}=%s$'%(l,m,latex(sp.Pix)))
+    if(not options.zoom):
+        ax91.axvline(x=a/2,color='black',linestyle='--')
+        ax91.axvline(x=-a/2,color='black',linestyle='--')
+        ax91.axvline(x=a_sensors/2,color='red',linestyle='--')
+        ax91.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+    ax71.axhline(y=0,color='black')
+    ax81.axhline(y=0,color='black')
+    ax91.axhline(y=0,color='black')
+    
+    ax71.legend()
+    ax81.legend()
+    ax91.legend()
 
 
 if(options.residuals):
@@ -596,3 +600,73 @@ if(options.residuals):
         plt.axvline(x=-a_sensors/2,color='red',linestyle='--')
 
 plt.show()
+
+# studies over an ROI
+#x,y,z=np.mgrid[-.25:.25:51j,-.25:.25:51j,-.25:.25:51j]
+x,y,z=np.mgrid[-.3:.3:61j,-.3:.3:61j,-.3:.3:61j]
+
+if(options.incells):
+    rcell=0.18 # m, cell radius
+    hcell=0.15 # m, cell height
+    dcell=0.10 # m, bottom to top distance of cells
+    mask=(abs(z)>=dcell/2)&(abs(z)<=dcell/2+hcell)&(x**2+y**2<rcell**2)
+else:
+    mask=np.full(np.shape(z),True)
+
+# This is used to test the cell dimensions.
+
+#fig=plt.figure()
+#ax=fig.add_subplot(111,projection='3d')
+#scat=ax.scatter(x[mask],y[mask],z[mask])
+#plt.show()
+
+bx_roi,by_roi,bz_roi=mycube.b_prime(x,y,z)
+bx_target=bxtarget(x,y,z)
+by_target=bytarget(x,y,z)
+bz_target=bztarget(x,y,z)
+bx_residual=bx_roi-bx_target
+by_residual=by_roi-by_target
+bz_residual=bz_roi-bz_target
+
+print(np.shape(bx_roi))
+
+print('Statistics on the ROI')
+print
+
+
+
+bz_ave=np.average(bz_target)
+print('The unmasked average Bz prior to correction is %e'%bz_ave)
+bz_max=np.amax(bz_target)
+bz_min=np.amin(bz_target)
+bz_delta=bz_max-bz_min
+print('The unmasked max/min/diff Bz are %e %e %e'%(bz_max,bz_min,bz_delta))
+print('We normalize this to 0.6 nT max-min')
+print
+
+bz_std=np.std(bz_target[mask])
+print('The masked standard deviation of Bz is %e'%bz_std)
+print('Normalizing to 0.6 nT gives a standard deviation of %f nT'%(bz_std/bz_delta*0.6))
+print
+
+bz_residual_max=np.amax(bz_residual[mask])
+bz_residual_min=np.amin(bz_residual[mask])
+bz_residual_delta=bz_residual_max-bz_residual_min
+print('The max/min/diff Bz residuals are %e %e %e'%(bz_residual_max,bz_residual_min,bz_residual_delta))
+print('Normalizing to 0.6 nT gives a delta of %f nT'%(bz_residual_delta/bz_delta*0.6))
+bz_residual_std=np.std(bz_residual[mask])
+print('The standard deviation of Bz residuals is %e'%bz_residual_std)
+print('Normalizing to 0.6 nT gives a standard deviation of %f nT'%(bz_residual_std/bz_delta*0.6))
+print
+
+bt2_target=bx_target**2+by_target**2+bz_target**2
+bt2_ave=np.average(bt2_target[mask])
+print('The BT2 prior to correction is %e'%bt2_ave)
+bt2_ave_norm=bt2_ave*0.6**2/bz_delta**2
+print('Normalized is %f nT^2'%(bt2_ave_norm))
+
+bt2_residual=bx_residual**2+by_residual**2+bz_residual**2
+bt2_residual_ave=np.average(bt2_residual[mask])
+print('The BT2 after correction is %e'%bt2_residual_ave)
+bt2_residual_ave_norm=bt2_residual_ave*0.6**2/bz_delta**2
+print('Normalized is %f nT^2'%(bt2_residual_ave_norm))
