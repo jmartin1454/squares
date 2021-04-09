@@ -63,7 +63,9 @@ parser.add_option("-i", "--incells", dest="incells", default=False,
                   action="store_true",
                   help="ROI for statistics is in EDM cells")
 
-d=dipole(1.2,0,0,0,0,1)
+d=dipole(1.2,0,0,0,0,1)  # dipole1
+#d=dipole(0,0,1.2,0,0,1)  # dipole2
+#d=dipole(0,0,1.2,1,0,0)  # dipole3
 
 (options,args)=parser.parse_args()
 
@@ -434,17 +436,17 @@ class the_matrix:
         plt.show()
 
         
-mymatrix = the_matrix(mycube,myarray)
+mymatrix=the_matrix(mycube,myarray)
 
-print(mymatrix.condition)
+print('The condition number is %f'%mymatrix.condition)
 if(options.matrices):
     mymatrix.show_matrices()
 
 # Set up vector of desired fields
 
-print(len(myarray.vec_b()),myarray.vec_b())
+#print(len(myarray.vec_b()),myarray.vec_b())
 vec_i=mymatrix.Minvp.dot(myarray.vec_b())
-print(vec_i)
+#print(vec_i)
 
 # Assign currents to coilcube
 
@@ -603,21 +605,26 @@ plt.show()
 
 # studies over an ROI
 #x,y,z=np.mgrid[-.25:.25:51j,-.25:.25:51j,-.25:.25:51j]
-x,y,z=np.mgrid[-.3:.3:61j,-.3:.3:61j,-.3:.3:61j]
+#x,y,z=np.mgrid[-.49:.49:99j,-.49:.49:99j,-.49:.49:99j]
+x,y,z=np.mgrid[-.49:.49:100j,-.49:.49:100j,-.49:.49:100j]
 
 if(options.incells):
-    rcell=0.18 # m, cell radius
-    hcell=0.15 # m, cell height
-    dcell=0.10 # m, bottom to top distance of cells
+    rcell=0.3 # m, cell radius
+    hcell=0.1601 # m, cell height
+    dcell=0.08 # m, bottom to top distance of cells
     mask=(abs(z)>=dcell/2)&(abs(z)<=dcell/2+hcell)&(x**2+y**2<rcell**2)
+    mask_upper=(abs(z)>=dcell/2)&(abs(z)<=dcell/2+hcell)&(x**2+y**2<rcell**2)&(z>0)
+    mask_lower=(abs(z)>=dcell/2)&(abs(z)<=dcell/2+hcell)&(x**2+y**2<rcell**2)&(z<0)
 else:
     mask=np.full(np.shape(z),True)
+    mask_upper=(z>0)
+    mask_lower=(z<0)
 
 # This is used to test the cell dimensions.
 
 #fig=plt.figure()
 #ax=fig.add_subplot(111,projection='3d')
-#scat=ax.scatter(x[mask],y[mask],z[mask])
+#scat=ax.scatter(x[mask_upper],y[mask_upper],z[mask_upper])
 #plt.show()
 
 bx_roi,by_roi,bz_roi=mycube.b_prime(x,y,z)
@@ -641,32 +648,88 @@ bz_max=np.amax(bz_target)
 bz_min=np.amin(bz_target)
 bz_delta=bz_max-bz_min
 print('The unmasked max/min/diff Bz are %e %e %e'%(bz_max,bz_min,bz_delta))
-print('We normalize this to 0.6 nT max-min')
+print('We normalize this to 3 nT max-min')
 print
 
+print('Both cells')
+bz_mask_max=np.amax(bz_target[mask])
+bz_mask_min=np.amin(bz_target[mask])
+bz_mask_delta=bz_mask_max-bz_mask_min
+print('The max/min/diff Bz masks are %e %e %e'%(bz_mask_max,bz_mask_min,bz_mask_delta))
+print('Normalizing to 3 nT gives a delta of %f nT'%(bz_mask_delta/bz_delta*3))
 bz_std=np.std(bz_target[mask])
 print('The masked standard deviation of Bz is %e'%bz_std)
-print('Normalizing to 0.6 nT gives a standard deviation of %f nT'%(bz_std/bz_delta*0.6))
+print('Normalizing to 3 nT gives a standard deviation of %f nT'%(bz_std/bz_delta*3))
 print
 
 bz_residual_max=np.amax(bz_residual[mask])
 bz_residual_min=np.amin(bz_residual[mask])
 bz_residual_delta=bz_residual_max-bz_residual_min
 print('The max/min/diff Bz residuals are %e %e %e'%(bz_residual_max,bz_residual_min,bz_residual_delta))
-print('Normalizing to 0.6 nT gives a delta of %f nT'%(bz_residual_delta/bz_delta*0.6))
+print('Normalizing to 3 nT gives a delta of %f nT'%(bz_residual_delta/bz_delta*3))
 bz_residual_std=np.std(bz_residual[mask])
 print('The standard deviation of Bz residuals is %e'%bz_residual_std)
-print('Normalizing to 0.6 nT gives a standard deviation of %f nT'%(bz_residual_std/bz_delta*0.6))
+print('Normalizing to 3 nT gives a standard deviation of %f nT'%(bz_residual_std/bz_delta*3))
 print
+
+print('Upper cell')
+bz_mask_max=np.amax(bz_target[mask_upper])
+bz_mask_min=np.amin(bz_target[mask_upper])
+bz_mask_delta=bz_mask_max-bz_mask_min
+print('The max/min/diff Bz masks are %e %e %e'%(bz_mask_max,bz_mask_min,bz_mask_delta))
+print('Normalizing to 3 nT gives a delta of %f nT'%(bz_mask_delta/bz_delta*3))
+bz_std=np.std(bz_target[mask_upper])
+print('The masked standard deviation of Bz is %e'%bz_std)
+print('Normalizing to 3 nT gives a standard deviation of %f nT'%(bz_std/bz_delta*3))
+print
+
+bz_residual_max=np.amax(bz_residual[mask_upper])
+bz_residual_min=np.amin(bz_residual[mask_upper])
+bz_residual_delta=bz_residual_max-bz_residual_min
+print('The max/min/diff Bz residuals are %e %e %e'%(bz_residual_max,bz_residual_min,bz_residual_delta))
+print('Normalizing to 3 nT gives a delta of %f nT'%(bz_residual_delta/bz_delta*3))
+bz_residual_std=np.std(bz_residual[mask_upper])
+print('The standard deviation of Bz residuals is %e'%bz_residual_std)
+print('Normalizing to 3 nT gives a standard deviation of %f nT'%(bz_residual_std/bz_delta*3))
+print
+
+print('Lower cell')
+bz_mask_max=np.amax(bz_target[mask_lower])
+bz_mask_min=np.amin(bz_target[mask_lower])
+bz_mask_delta=bz_mask_max-bz_mask_min
+print('The max/min/diff Bz masks are %e %e %e'%(bz_mask_max,bz_mask_min,bz_mask_delta))
+print('Normalizing to 3 nT gives a delta of %f nT'%(bz_mask_delta/bz_delta*3))
+bz_std=np.std(bz_target[mask_lower])
+print('The masked standard deviation of Bz is %e'%bz_std)
+print('Normalizing to 3 nT gives a standard deviation of %f nT'%(bz_std/bz_delta*3))
+print
+
+bz_residual_max=np.amax(bz_residual[mask_lower])
+bz_residual_min=np.amin(bz_residual[mask_lower])
+bz_residual_delta=bz_residual_max-bz_residual_min
+print('The max/min/diff Bz residuals are %e %e %e'%(bz_residual_max,bz_residual_min,bz_residual_delta))
+print('Normalizing to 3 nT gives a delta of %f nT'%(bz_residual_delta/bz_delta*3))
+bz_residual_std=np.std(bz_residual[mask_lower])
+print('The standard deviation of Bz residuals is %e'%bz_residual_std)
+print('Normalizing to 3 nT gives a standard deviation of %f nT'%(bz_residual_std/bz_delta*3))
+print
+
 
 bt2_target=bx_target**2+by_target**2+bz_target**2
 bt2_ave=np.average(bt2_target[mask])
 print('The BT2 prior to correction is %e'%bt2_ave)
-bt2_ave_norm=bt2_ave*0.6**2/bz_delta**2
+bt2_ave_norm=bt2_ave*3**2/bz_delta**2
 print('Normalized is %f nT^2'%(bt2_ave_norm))
 
 bt2_residual=bx_residual**2+by_residual**2+bz_residual**2
 bt2_residual_ave=np.average(bt2_residual[mask])
 print('The BT2 after correction is %e'%bt2_residual_ave)
-bt2_residual_ave_norm=bt2_residual_ave*0.6**2/bz_delta**2
+bt2_residual_ave_norm=bt2_residual_ave*3**2/bz_delta**2
 print('Normalized is %f nT^2'%(bt2_residual_ave_norm))
+print
+
+print('The normalized currents are:')
+vec_i=vec_i*3e-9/bz_delta
+print(vec_i)
+print('The maximum current is %f A'%np.amax(vec_i))
+print('The minimum current is %f A'%np.amin(vec_i))
