@@ -184,7 +184,7 @@ points_ml=(point1,point2,point3,point4)
 points_ml=np.array(points_ml)
 myset.add_coil(points_ml)
 
-# now reflect them all to the other face: xface -> xface
+# now reflect them all to the other face: xface -> -xface
 def reflect_x(points):
     newpoints=np.copy(points)
     newpoints[:,0]=-newpoints[:,0]
