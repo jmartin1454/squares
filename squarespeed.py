@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 # Fri May 24 10:11:45 CDT 2019 Jeff added this line.
 
