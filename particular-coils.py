@@ -693,8 +693,8 @@ if(options.matrices):
 # Set up vector of desired fields
 
 #print(len(myarray.vec_b()),myarray.vec_b())
-vec_i=mymatrix.Minvp.dot(myarray.vec_b())
-#vec_i=mymatrix.Minv.dot(myarray.vec_b())
+#vec_i=mymatrix.Minvp.dot(myarray.vec_b())
+vec_i=mymatrix.Minv.dot(myarray.vec_b())
 #print(vec_i)
 
 # Assign currents to coilcube
