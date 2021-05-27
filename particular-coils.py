@@ -60,8 +60,8 @@ parser.add_option("-i", "--incells", dest="incells", default=False,
                   action="store_true",
                   help="ROI for statistics is in EDM cells")
 
-d=dipole(1.2,0,0,0,0,100000)  # dipole1
-#d=dipole(0,0,1.2,0,0,1)  # dipole2
+#d=dipole(1.2,0,0,0,0,100000)  # dipole1
+d=dipole(0,0,1.2,0,0,1)  # dipole2
 #d=dipole(0,0,1.2,1,0,0)  # dipole3
 
 (options,args)=parser.parse_args()
@@ -693,8 +693,8 @@ if(options.matrices):
 # Set up vector of desired fields
 
 #print(len(myarray.vec_b()),myarray.vec_b())
-vec_i=mymatrix.Minvp.dot(myarray.vec_b())
-#vec_i=mymatrix.Minv.dot(myarray.vec_b())
+#vec_i=mymatrix.Minvp.dot(myarray.vec_b())
+vec_i=mymatrix.Minv.dot(myarray.vec_b())
 #print(vec_i)
 
 # Assign currents to coilcube
@@ -982,3 +982,46 @@ vec_i=vec_i*3e-9/bz_delta
 print(vec_i)
 print('The maximum current is %f A'%np.amax(vec_i))
 print('The minimum current is %f A'%np.amin(vec_i))
+
+n=10
+Igoal=round(np.amax(vec_i)*1000)
+print('The goal current is %f mA.'%Igoal)
+
+def I(W):
+    Imin = W/(-10)
+    Imax = W/10
+    deltaI = Imax-Imin
+    maxbits = 2**n -1
+    bits = ((Igoal - Imin)/deltaI)*maxbits
+    Itrue = (deltaI/maxbits)*bits+Imin
+
+    return Itrue
+    
+def bits(W):
+    Imin = W/(0.01)
+    Imax = W/5
+    deltaI = Imax-Imin
+    maxbits = 2**n -1
+    bits = ((Igoal - Imin)/deltaI)*maxbits
+    #print('The max amount of steps for %f bits are %f.'%(round(n),round(maxbits)))
+    #print('The bits reqiured are %f.'%bits)
+    #Itrue = (deltaI/maxbits)*bits+Imin
+    #print('The true current is %f mA.'%Itrue)
+
+    return bits
+
+W=np.arange(0,100,1)
+
+plt.plot(W,I(W))
+plt.xlabel('Watts')
+plt.ylabel('I true')
+plt.show()
+
+
+plt.plot(W,bits(W))
+plt.xlabel('Watts')
+plt.ylabel('bits')
+plt.show()
+
+
+
