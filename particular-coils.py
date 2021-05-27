@@ -853,6 +853,7 @@ if(options.residuals):
 plt.show()
 
 # studies over an ROI
+
 #x,y,z=np.mgrid[-.25:.25:51j,-.25:.25:51j,-.25:.25:51j]
 #x,y,z=np.mgrid[-.49:.49:99j,-.49:.49:99j,-.49:.49:99j]
 x,y,z=np.mgrid[-.49:.49:100j,-.49:.49:100j,-.49:.49:100j]
@@ -983,9 +984,24 @@ print(vec_i)
 print('The maximum current is %f A'%np.amax(vec_i))
 print('The minimum current is %f A'%np.amin(vec_i))
 
-n=10
-Igoal=round(np.amax(vec_i)*1000)
+n=10 # number of bits
+#Igoal=round(np.amax(vec_i)*1000)
+Imin=-0.025 # minimum current (A)
+Imax=0.025 # maximum current (A)
+deltaI=Imax-Imin # full range of current, which I'll distribute my bits across.
+
+def bits(I):
+    return np.rint((I+Imin)/deltaI*(2**n-1))
+
+def true_current(b):
+    return deltaI/(2**n-1)*b+Imin
+
+print('The bits are',bits(vec_i))
+
+print('The digitized currents are',true_current(bits(vec_i)))
+
 print('The goal current is %f mA.'%Igoal)
+
 
 def I(W):
     Imin = W/(-10)
@@ -1010,18 +1026,18 @@ def bits(W):
 
     return bits
 
-W=np.arange(0,100,1)
+#W=np.arange(0,100,1)
 
-plt.plot(W,I(W))
-plt.xlabel('Watts')
-plt.ylabel('I true')
-plt.show()
+#plt.plot(W,I(W))
+#plt.xlabel('Watts')
+#plt.ylabel('I true')
+#plt.show()
 
 
-plt.plot(W,bits(W))
-plt.xlabel('Watts')
-plt.ylabel('bits')
-plt.show()
+#plt.plot(W,bits(W))
+#plt.xlabel('Watts')
+#plt.ylabel('bits')
+#plt.show()
 
 
 
