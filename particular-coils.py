@@ -991,53 +991,23 @@ Imax=0.025 # maximum current (A)
 deltaI=Imax-Imin # full range of current, which I'll distribute my bits across.
 
 def bits(I):
-    return np.rint((I+Imin)/deltaI*(2**n-1))
+    return np.rint((I-Imin)/deltaI*(2**n-1))
 
 def true_current(b):
     return deltaI/(2**n-1)*b+Imin
 
 print('The bits are',bits(vec_i))
 
-print('The digitized currents are',true_current(bits(vec_i)))
-
-print('The goal current is %f mA.'%Igoal)
+print('The digitized currents are',np.around(true_current(bits(vec_i)),3))
 
 
-def I(W):
-    Imin = W/(-10)
-    Imax = W/10
-    deltaI = Imax-Imin
-    maxbits = 2**n -1
-    bits = ((Igoal - Imin)/deltaI)*maxbits
-    Itrue = (deltaI/maxbits)*bits+Imin
+#trying to plot normalized and digitized currents vs number coils? 
 
-    return Itrue
-    
-def bits(W):
-    Imin = W/(0.01)
-    Imax = W/5
-    deltaI = Imax-Imin
-    maxbits = 2**n -1
-    bits = ((Igoal - Imin)/deltaI)*maxbits
-    #print('The max amount of steps for %f bits are %f.'%(round(n),round(maxbits)))
-    #print('The bits reqiured are %f.'%bits)
-    #Itrue = (deltaI/maxbits)*bits+Imin
-    #print('The true current is %f mA.'%Itrue)
+cn=list(range(0,50)) #number of coils
 
-    return bits
-
-#W=np.arange(0,100,1)
-
-#plt.plot(W,I(W))
-#plt.xlabel('Watts')
-#plt.ylabel('I true')
-#plt.show()
-
-
-#plt.plot(W,bits(W))
-#plt.xlabel('Watts')
-#plt.ylabel('bits')
-#plt.show()
+plt.plot(cn,vec_i,label='normalized currents')
+plt.plot(cn,np.around(true_current(bits(vec_i)),3),label='digitized currents')
+plt.show()
 
 
 
