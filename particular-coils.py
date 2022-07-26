@@ -555,7 +555,7 @@ mpl.rcParams['legend.fontsize'] = 10
 
 if(options.traces):
     fig = plt.figure()
-    ax = fig.gca(projection='3d')
+    ax=fig.add_subplot(111,projection='3d')
     myset.draw_coils(ax)
     myarray.draw_sensors(ax)
     ax.set_xlabel('x (m)')
