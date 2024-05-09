@@ -122,6 +122,9 @@ def calculate_coil_dimensions_and_positions(b,c,myset):
                 bx,by,bz=myset.b_prime(x,y,znew)
                 print("Coil %d, Bx %e, By %e, Bz %e"%(j,bx,by,bz))
                 myset.set_current_in_coil(j,0)
+                if(z==b/2):
+                    print("I'm going to flip coil %d"%(j))
+                    myset.coil[j].flip_this_coil()
                 j+=1
 
     for y in [-b/2,b/2]:
@@ -136,6 +139,9 @@ def calculate_coil_dimensions_and_positions(b,c,myset):
                 bx,by,bz=myset.b_prime(x,y,z)
                 print("Coil %d, Bx %e, By %e, Bz %e"%(j,bx,by,bz))
                 myset.set_current_in_coil(j,0)
+                if(y==-b/2):
+                    print("I'm going to flip coil %d"%(j))
+                    myset.coil[j].flip_this_coil()
                 j+=1
 
     for x in [-b/2,b/2]:
@@ -151,6 +157,9 @@ def calculate_coil_dimensions_and_positions(b,c,myset):
                     bx,by,bz=myset.b_prime(x,y,z)
                     print("Coil %d, Bx %e, By %e, Bz %e"%(j,bx,by,bz))
                     myset.set_current_in_coil(j,0)
+                    if(x==b/2):
+                         print("I'm going to flip coil %d"%(j))
+                         myset.coil[j].flip_this_coil()
                     j+=1
 
 
@@ -218,7 +227,7 @@ class sensorarray:
             for k in range(3):
                 the_vector[j*3+k]=b[k]
         return the_vector
-
+#print (the_vector)
 
 # set up array of sensors
 a_sensors=box_length/2
@@ -386,12 +395,19 @@ if(options.matrices):
 
 #print(len(myarray.vec_b()),myarray.vec_b())
 #vec_i=mymatrix.Minvp.dot(myarray.vec_b())
+
+#vec_r=the_vector   #postion vector
+
 vec_i=mymatrix.Minv.dot(myarray.vec_b())
+#dot_vec = -np.dot(vec_r,vec_i)
+#print(dot_vec)
+
 #print(vec_i)
 
 # Assign currents to coilcube
-
 myset.set_currents(vec_i)
+
+#myset.set_current(dot_vec)
 # the field at the center of the coilcube
 r=np.array([0,0,0])
 print(myset.b(r))
@@ -548,8 +564,21 @@ max_unnormalized_current=np.max(np.abs(vec_i)) # arb. units
 max_normalized_current=0.02 # Amperes
 calibration_factor=max_normalized_current/max_unnormalized_current
 calibrated_vec_i=vec_i*calibration_factor # Amperes
-print(calibrated_vec_i)
 
+channel_number =np.arange(50)
+my_calibrated_array_i=calibrated_vec_i.reshape(-1,1) # Amperes
+print('my calibrated currents array',my_calibrated_array_i)
+print('my calibrated currents array',size(my_calibrated_array_i))
+
+import csv
+
+with open('current.csv','w', newline='') as csvfile:
+        fields=['channel_number','calibrated_vec_i']
+        writer=csv.DictWriter(csvfile, delimiter=',', lineterminator='\n',fieldnames=fields)
+        writer.writeheader()
+        data=(channel_number,my_calibrated_array_i)
+        for cn,ci in zip(channel_number, my_calibrated_array_i):
+            writer.writerow({'channel_number':cn, 'calibrated_vec_i':ci[0]})     
 # Now let's check what the field should be after setting these currents
 myset.set_currents(calibrated_vec_i)
 
