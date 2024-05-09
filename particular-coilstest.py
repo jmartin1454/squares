@@ -12,6 +12,9 @@
 # Sat Aug 1 12:40:53 CDT 2020 Jeff added command line options and
 # improved graphs
 
+# Thu 09 May 2024 10:05:31 AM CDT Amala edited code
+
+
 
 from scipy.constants import mu_0, pi
 import numpy as np
