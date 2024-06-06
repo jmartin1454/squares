@@ -564,7 +564,7 @@ plt.show()
 
 print(vec_i)
 max_unnormalized_current=np.max(np.abs(vec_i)) # arb. units
-max_normalized_current=0.02 # Amperes
+max_normalized_current=0.04 # Amperes
 calibration_factor=max_normalized_current/max_unnormalized_current
 calibrated_vec_i=vec_i*calibration_factor # Amperes
 
