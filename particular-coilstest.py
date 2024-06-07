@@ -681,4 +681,6 @@ if(options.axes):
     ax81.legend()
     ax91.legend()
 
+    np.savetxt('xscan.out',np.transpose((points1d[mask],bx1d_xscan[mask],by1d_xscan[mask],bz1d_xscan[mask])))
+    
 plt.show()
