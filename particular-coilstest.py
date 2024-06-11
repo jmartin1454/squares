@@ -265,6 +265,7 @@ if(options.traces):
     ax.set_xlabel('x (m)')
     ax.set_ylabel('y (m)')
     ax.set_zlabel('z (m)')
+   
     plt.show()
 
 
@@ -352,7 +353,197 @@ class the_matrix:
                 ax.plot(xs,ys,zs)
             myset.coil[i].set_current(0.0)
             ax.legend()
+            
             plt.show()
+
+    def show_matrices(self):
+        fig1,ax1=plt.subplots()
+        fig2,ax2=plt.subplots()
+        fig3,ax3=plt.subplots()
+        fig4,ax4=plt.subplots()
+        fig5,ax5=plt.subplots()
+        fig6,ax6=plt.subplots()
+        fig7,ax7=plt.subplots()
+        fig8,ax8=plt.subplots()
+        fig9,ax9=plt.subplots()
+
+        ax1.imshow(self.capital_M,cmap=cm.bwr)
+        ax2.imshow(self.U,cmap=cm.bwr)
+        ax3.imshow(self.S,cmap=cm.bwr)
+        ax4.imshow(self.VT,cmap=cm.bwr)
+        ax5.imshow(self.D,cmap=cm.bwr)
+        ax6.imshow(self.Minv,cmap=cm.bwr)
+        ax7.imshow(self.Dp,cmap=cm.bwr)
+        ax8.imshow(self.VTp,cmap=cm.bwr)
+        ax9.imshow(self.Minvp,cmap=cm.bwr)
+
+        ax1.set_title('M')
+        ax2.set_title('U')
+        ax3.set_title('S')
+        ax4.set_title('VT')
+        ax5.set_title('D')
+        ax6.set_title('Minv')
+        ax7.set_title('Dp')
+        ax8.set_title('VTp')
+        ax9.set_title('Minvp')
+
+        plt.show()
+
+
+from matplotlib import cm
+
+class the_matrix:
+    def __init__(self,myset,myarray):
+        self.m=np.zeros((myset.numcoils,myarray.numsensors*3))
+        #self.fill(myset,myarray)
+        self.fillspeed(myset,myarray)
+        self.condition = np.linalg.cond(self.m)
+
+        # for some reason I chose to create the transpose of the usual
+        # convention, when I first wrote the fill method
+        self.capital_M=self.m.T # M=s*c=sensors*coils Matrix
+
+        # Do the svd
+        self.U,self.s,self.VT=np.linalg.svd(self.capital_M)
+
+        print('s is',self.s)
+        # s is just a list of the diagonal elements, rather than a matrix
+        # You can make the matrix this way:
+        self.S=np.zeros(self.capital_M.shape)
+        self.S[:self.capital_M.shape[1],:self.capital_M.shape[1]]=np.diag(self.s)
+        # Or, I've seen people use "full_matrices=True" in the svd command
+
+        # Start to calculate the inverse explicitly
+        # list of reciprocals
+        d=1./self.s
+        self.D=np.zeros(self.capital_M.shape)
+        # matrix of reciprocals
+        self.D[:self.capital_M.shape[1],:self.capital_M.shape[1]]=np.diag(d)
+
+        # inverse of capital_M
+        self.Minv=self.VT.T.dot(self.D.T).dot(self.U.T)
+        #self.Minv=np.linalg.pinv(self.capital_M)
+        
+        # now gets to fixin'
+        # remove just the last mode
+        n_elements=myset.numcoils-1
+
+        self.Dp=self.D[:,:n_elements]
+        self.VTp=self.VT[:n_elements,:]
+        self.Minvp=self.VTp.T.dot(self.Dp.T).dot(self.U.T)
+        
+    def fill(self,myset,myarray):
+        for i in range(myset.numcoils):
+            myset.set_independent_current(i,1.0)
+            for j in range(myarray.numsensors):
+                r = myarray.sensors[j].pos
+                b = myset.b(r)
+                for k in range(3):
+                    self.m[i,j*3+k]=b[k]
+            myset.set_independent_current(i,0.0)
+
+    def fillspeed(self,myset,myarray):
+        myset.set_common_current(1.0)
+        for i in range(myset.numcoils):
+            print("Doing coil %d"%i)
+            for j in range(myarray.numsensors):
+                r = myarray.sensors[j].pos
+                bx,by,bz=myset.coil[i].b_prime(r[0],r[1],r[2])
+                b=[bx,by,bz]
+                for k in range(3):
+                    self.m[i,j*3+k]=b[k]
+        myset.zero_currents()
+            
+    def check_field_graphically(self,myset,myarray):
+        # test each coil by graphing field at each sensor
+        for i in range(myset.numcoils):
+            fig = plt.figure()
+            ax=fig.add_subplot(111,projection='3d')
+            myset.draw_coil(i,ax)
+            myset.coil[i].set_current(1.0)
+            for j in range(myarray.numsensors):
+                r = myarray.sensors[j].pos
+                b=myset.b(r)
+                bhat=b*5.e4
+                points = []
+                points.append(r)
+                points.append(r+bhat)
+                xs = ([p[0] for p in points])
+                ys = ([p[1] for p in points])
+                zs = ([p[2] for p in points])
+                ax.plot(xs,ys,zs)
+            myset.coil[i].set_current(0.0)
+            ax.legend()
+           
+            plt.show()
+
+    def show_matrices(self):
+        fig1,ax1=plt.subplots()
+        fig2,ax2=plt.subplots()
+        fig3,ax3=plt.subplots()
+        fig4,ax4=plt.subplots()
+        fig5,ax5=plt.subplots()
+        fig6,ax6=plt.subplots()
+        fig7,ax7=plt.subplots()
+        fig8,ax8=plt.subplots()
+        fig9,ax9=plt.subplots()
+
+        ax1.imshow(self.capital_M,cmap=cm.bwr)
+        ax2.imshow(self.U,cmap=cm.bwr)
+        ax3.imshow(self.S,cmap=cm.bwr)
+        ax4.imshow(self.VT,cmap=cm.bwr)
+        ax5.imshow(self.D,cmap=cm.bwr)
+        ax6.imshow(self.Minv,cmap=cm.bwr)
+        ax7.imshow(self.Dp,cmap=cm.bwr)
+        ax8.imshow(self.VTp,cmap=cm.bwr)
+        ax9.imshow(self.Minvp,cmap=cm.bwr)
+
+        ax1.set_title('M')
+        ax2.set_title('U')
+        ax3.set_title('S')
+        ax4.set_title('VT')
+        ax5.set_title('D')
+        ax6.set_title('Minv')
+        ax7.set_title('Dp')
+        ax8.set_title('VTp')
+        ax9.set_title('Minvp')
+
+        
+        
+        plt.show()
+
+    def show_matrices(self):
+        fig1,ax1=plt.subplots()
+        fig2,ax2=plt.subplots()
+        fig3,ax3=plt.subplots()
+        fig4,ax4=plt.subplots()
+        fig5,ax5=plt.subplots()
+        fig6,ax6=plt.subplots()
+        fig7,ax7=plt.subplots()
+        fig8,ax8=plt.subplots()
+        fig9,ax9=plt.subplots()
+
+        ax1.imshow(self.capital_M,cmap=cm.bwr)
+        ax2.imshow(self.U,cmap=cm.bwr)
+        ax3.imshow(self.S,cmap=cm.bwr)
+        ax4.imshow(self.VT,cmap=cm.bwr)
+        ax5.imshow(self.D,cmap=cm.bwr)
+        ax6.imshow(self.Minv,cmap=cm.bwr)
+        ax7.imshow(self.Dp,cmap=cm.bwr)
+        ax8.imshow(self.VTp,cmap=cm.bwr)
+        ax9.imshow(self.Minvp,cmap=cm.bwr)
+
+        ax1.set_title('M')
+        ax2.set_title('U')
+        ax3.set_title('S')
+        ax4.set_title('VT')
+        ax5.set_title('D')
+        ax6.set_title('Minv')
+        ax7.set_title('Dp')
+        ax8.set_title('VTp')
+        ax9.set_title('Minvp')
+
+        plt.show()
 
     def show_matrices(self):
         fig1,ax1=plt.subplots()
@@ -520,7 +711,7 @@ if(options.axes):
 
 
 if(options.residuals):
-
+   
     ax101=plt.figure(101)
     plt.plot(points1d[mask],bz1d_xscan[mask]-bz1d_target_xscan[mask],label='residual $B_z(x,0,0)$')
     plt.plot(points1d[mask],bz1d_yscan[mask]-bz1d_target_yscan[mask],label='residual $B_z(0,y,0)$')
@@ -541,6 +732,7 @@ if(options.residuals):
     plt.xlabel('x, y, or z (m)')
     plt.ylabel('residual $B_y$ (true-target)')
     plt.legend()
+    
     if(not options.zoom):
         plt.axvline(x=a/2,color='black',linestyle='--')
         plt.axvline(x=-a/2,color='black',linestyle='--')
@@ -559,6 +751,266 @@ if(options.residuals):
         plt.axvline(x=-a/2,color='black',linestyle='--')
         plt.axvline(x=a_sensors/2,color='red',linestyle='--')
         plt.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+
+    ax81.plot(points1d[mask],by1d_target_xscan[mask],label='target $B_y(x,0,0)$')
+    ax81.plot(points1d[mask],by1d_yscan[mask],label='$B_y(0,y,0)$')
+    ax81.plot(points1d[mask],by1d_target_yscan[mask],label='target $B_y(0,y,0)$')
+    ax81.plot(points1d[mask],by1d_zscan[mask],label='$B_y(0,0,z)$')
+    ax81.plot(points1d[mask],by1d_target_zscan[mask],label='target $B_y(0,0,z)$')
+    ax81.set_xlabel('x, y, or z (m)')
+    if(options.dipole):
+        ax81.set_ylabel('$B_y=dipole$')
+    else:
+        ax81.set_ylabel('$B_y=\Pi_{y,%d,%d}=%s$'%(l,m,latex(sp.Piy)))
+    if(not options.zoom):
+        ax81.axvline(x=a/2,color='black',linestyle='--')
+        ax81.axvline(x=-a/2,color='black',linestyle='--')
+        ax81.axvline(x=a_sensors/2,color='red',linestyle='--')
+        ax81.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+    ax91.plot(points1d[mask],bx1d_xscan[mask],label='$B_x(x,0,0)$')
+    ax91.plot(points1d[mask],bx1d_target_xscan[mask],label='target $B_x(x,0,0)$')
+    ax91.plot(points1d[mask],bx1d_yscan[mask],label='$B_x(0,y,0)$')
+    ax91.plot(points1d[mask],bx1d_target_yscan[mask],label='target $B_x(0,y,0)$')
+    ax91.plot(points1d[mask],bx1d_zscan[mask],label='$B_x(0,0,z)$')
+    ax91.plot(points1d[mask],bx1d_target_zscan[mask],label='target $B_x(0,0,z)$')
+    ax91.set_xlabel('x, y, or z (m)')
+    if(options.dipole):
+        ax91.set_ylabel('$B_x=dipole$')
+    else:
+        ax91.set_ylabel('$B_x=\Pi_{x,%d,%d}=%s$'%(l,m,latex(sp.Pix)))
+    if(not options.zoom):
+        ax91.axvline(x=a/2,color='black',linestyle='--')
+        ax91.axvline(x=-a/2,color='black',linestyle='--')
+        ax91.axvline(x=a_sensors/2,color='red',linestyle='--')
+        ax91.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+    ax71.axhline(y=0,color='black')
+    ax81.axhline(y=0,color='black')
+    ax91.axhline(y=0,color='black')
+    
+    ax71.legend()
+    ax81.legend()
+    ax91.legend()
+
+
+if(options.residuals):
+   
+    ax101=plt.figure(101)
+    plt.plot(points1d[mask],bz1d_xscan[mask]-bz1d_target_xscan[mask],label='residual $B_z(x,0,0)$')
+    plt.plot(points1d[mask],bz1d_yscan[mask]-bz1d_target_yscan[mask],label='residual $B_z(0,y,0)$')
+    plt.plot(points1d[mask],bz1d_zscan[mask]-bz1d_target_zscan[mask],label='residual $B_z(0,0,z)$')
+    plt.xlabel('x, y, or z (m)')
+    plt.ylabel('residual $B_z$ (true-target)')
+    plt.legend()
+    if(not options.zoom):
+        plt.axvline(x=a/2,color='black',linestyle='--')
+        plt.axvline(x=-a/2,color='black',linestyle='--')
+        plt.axvline(x=a_sensors/2,color='red',linestyle='--')
+        plt.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+    ax102=plt.figure(102)
+    plt.plot(points1d[mask],by1d_xscan[mask]-by1d_target_xscan[mask],label='residual $B_y(x,0,0)$')
+    plt.plot(points1d[mask],by1d_yscan[mask]-by1d_target_yscan[mask],label='residual $B_y(0,y,0)$')
+    plt.plot(points1d[mask],by1d_zscan[mask]-by1d_target_zscan[mask],label='residual $B_y(0,0,z)$')
+    plt.xlabel('x, y, or z (m)')
+    plt.ylabel('residual $B_y$ (true-target)')
+    plt.legend()
+    
+    if(not options.zoom):
+        plt.axvline(x=a/2,color='black',linestyle='--')
+        plt.axvline(x=-a/2,color='black',linestyle='--')
+        plt.axvline(x=a_sensors/2,color='red',linestyle='--')
+        plt.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+    ax103=plt.figure(103)
+    plt.plot(points1d[mask],bx1d_xscan[mask]-bx1d_target_xscan[mask],label='residual $B_x(x,0,0)$')
+    plt.plot(points1d[mask],bx1d_yscan[mask]-bx1d_target_yscan[mask],label='residual $B_x(0,y,0)$')
+    plt.plot(points1d[mask],bx1d_zscan[mask]-bx1d_target_zscan[mask],label='residual $B_x(0,0,z)$')
+    plt.xlabel('x, y, or z (m)')
+    plt.ylabel('residual $B_x$ (true-target)')
+    plt.legend()
+    if(not options.zoom):
+        plt.axvline(x=a/2,color='black',linestyle='--')
+        plt.axvline(x=-a/2,color='black',linestyle='--')
+        plt.axvline(x=a_sensors/2,color='red',linestyle='--')
+        plt.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+    ax81.plot(points1d[mask],by1d_target_xscan[mask],label='target $B_y(x,0,0)$')
+    ax81.plot(points1d[mask],by1d_yscan[mask],label='$B_y(0,y,0)$')
+    ax81.plot(points1d[mask],by1d_target_yscan[mask],label='target $B_y(0,y,0)$')
+    ax81.plot(points1d[mask],by1d_zscan[mask],label='$B_y(0,0,z)$')
+    ax81.plot(points1d[mask],by1d_target_zscan[mask],label='target $B_y(0,0,z)$')
+    ax81.set_xlabel('x, y, or z (m)')
+    if(options.dipole):
+        ax81.set_ylabel('$B_y=dipole$')
+    else:
+        ax81.set_ylabel('$B_y=\Pi_{y,%d,%d}=%s$'%(l,m,latex(sp.Piy)))
+    if(not options.zoom):
+        ax81.axvline(x=a/2,color='black',linestyle='--')
+        ax81.axvline(x=-a/2,color='black',linestyle='--')
+        ax81.axvline(x=a_sensors/2,color='red',linestyle='--')
+        ax81.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+    ax91.plot(points1d[mask],bx1d_xscan[mask],label='$B_x(x,0,0)$')
+    ax91.plot(points1d[mask],bx1d_target_xscan[mask],label='target $B_x(x,0,0)$')
+    ax91.plot(points1d[mask],bx1d_yscan[mask],label='$B_x(0,y,0)$')
+    ax91.plot(points1d[mask],bx1d_target_yscan[mask],label='target $B_x(0,y,0)$')
+    ax91.plot(points1d[mask],bx1d_zscan[mask],label='$B_x(0,0,z)$')
+    ax91.plot(points1d[mask],bx1d_target_zscan[mask],label='target $B_x(0,0,z)$')
+    ax91.set_xlabel('x, y, or z (m)')
+    if(options.dipole):
+        ax91.set_ylabel('$B_x=dipole$')
+    else:
+        ax91.set_ylabel('$B_x=\Pi_{x,%d,%d}=%s$'%(l,m,latex(sp.Pix)))
+    if(not options.zoom):
+        ax91.axvline(x=a/2,color='black',linestyle='--')
+        ax91.axvline(x=-a/2,color='black',linestyle='--')
+        ax91.axvline(x=a_sensors/2,color='red',linestyle='--')
+        ax91.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+    ax71.axhline(y=0,color='black')
+    ax81.axhline(y=0,color='black')
+    ax91.axhline(y=0,color='black')
+    
+    ax71.legend()
+    ax81.legend()
+    ax91.legend()
+
+
+if(options.residuals):
+   
+    ax101=plt.figure(101)
+    plt.plot(points1d[mask],bz1d_xscan[mask]-bz1d_target_xscan[mask],label='residual $B_z(x,0,0)$')
+    plt.plot(points1d[mask],bz1d_yscan[mask]-bz1d_target_yscan[mask],label='residual $B_z(0,y,0)$')
+    plt.plot(points1d[mask],bz1d_zscan[mask]-bz1d_target_zscan[mask],label='residual $B_z(0,0,z)$')
+    plt.xlabel('x, y, or z (m)')
+    plt.ylabel('residual $B_z$ (true-target)')
+    plt.legend()
+    if(not options.zoom):
+        plt.axvline(x=a/2,color='black',linestyle='--')
+        plt.axvline(x=-a/2,color='black',linestyle='--')
+        plt.axvline(x=a_sensors/2,color='red',linestyle='--')
+        plt.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+    ax102=plt.figure(102)
+    plt.plot(points1d[mask],by1d_xscan[mask]-by1d_target_xscan[mask],label='residual $B_y(x,0,0)$')
+    plt.plot(points1d[mask],by1d_yscan[mask]-by1d_target_yscan[mask],label='residual $B_y(0,y,0)$')
+    plt.plot(points1d[mask],by1d_zscan[mask]-by1d_target_zscan[mask],label='residual $B_y(0,0,z)$')
+    plt.xlabel('x, y, or z (m)')
+    plt.ylabel('residual $B_y$ (true-target)')
+    plt.legend()
+    
+    if(not options.zoom):
+        plt.axvline(x=a/2,color='black',linestyle='--')
+        plt.axvline(x=-a/2,color='black',linestyle='--')
+        plt.axvline(x=a_sensors/2,color='red',linestyle='--')
+        plt.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+    ax103=plt.figure(103)
+    plt.plot(points1d[mask],bx1d_xscan[mask]-bx1d_target_xscan[mask],label='residual $B_x(x,0,0)$')
+    plt.plot(points1d[mask],bx1d_yscan[mask]-bx1d_target_yscan[mask],label='residual $B_x(0,y,0)$')
+    plt.plot(points1d[mask],bx1d_zscan[mask]-bx1d_target_zscan[mask],label='residual $B_x(0,0,z)$')
+    plt.xlabel('x, y, or z (m)')
+    plt.ylabel('residual $B_x$ (true-target)')
+    plt.legend()
+    if(not options.zoom):
+        plt.axvline(x=a/2,color='black',linestyle='--')
+        plt.axvline(x=-a/2,color='black',linestyle='--')
+        plt.axvline(x=a_sensors/2,color='red',linestyle='--')
+        plt.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+    ax81.plot(points1d[mask],by1d_target_xscan[mask],label='target $B_y(x,0,0)$')
+    ax81.plot(points1d[mask],by1d_yscan[mask],label='$B_y(0,y,0)$')
+    ax81.plot(points1d[mask],by1d_target_yscan[mask],label='target $B_y(0,y,0)$')
+    ax81.plot(points1d[mask],by1d_zscan[mask],label='$B_y(0,0,z)$')
+    ax81.plot(points1d[mask],by1d_target_zscan[mask],label='target $B_y(0,0,z)$')
+    ax81.set_xlabel('x, y, or z (m)')
+    if(options.dipole):
+        ax81.set_ylabel('$B_y=dipole$')
+    else:
+        ax81.set_ylabel('$B_y=\Pi_{y,%d,%d}=%s$'%(l,m,latex(sp.Piy)))
+    if(not options.zoom):
+        ax81.axvline(x=a/2,color='black',linestyle='--')
+        ax81.axvline(x=-a/2,color='black',linestyle='--')
+        ax81.axvline(x=a_sensors/2,color='red',linestyle='--')
+        ax81.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+    ax91.plot(points1d[mask],bx1d_xscan[mask],label='$B_x(x,0,0)$')
+    ax91.plot(points1d[mask],bx1d_target_xscan[mask],label='target $B_x(x,0,0)$')
+    ax91.plot(points1d[mask],bx1d_yscan[mask],label='$B_x(0,y,0)$')
+    ax91.plot(points1d[mask],bx1d_target_yscan[mask],label='target $B_x(0,y,0)$')
+    ax91.plot(points1d[mask],bx1d_zscan[mask],label='$B_x(0,0,z)$')
+    ax91.plot(points1d[mask],bx1d_target_zscan[mask],label='target $B_x(0,0,z)$')
+    ax91.set_xlabel('x, y, or z (m)')
+    if(options.dipole):
+        ax91.set_ylabel('$B_x=dipole$')
+    else:
+        ax91.set_ylabel('$B_x=\Pi_{x,%d,%d}=%s$'%(l,m,latex(sp.Pix)))
+    if(not options.zoom):
+        ax91.axvline(x=a/2,color='black',linestyle='--')
+        ax91.axvline(x=-a/2,color='black',linestyle='--')
+        ax91.axvline(x=a_sensors/2,color='red',linestyle='--')
+        ax91.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+    ax71.axhline(y=0,color='black')
+    ax81.axhline(y=0,color='black')
+    ax91.axhline(y=0,color='black')
+    
+    ax71.legend()
+    ax81.legend()
+    ax91.legend()
+
+
+if(options.residuals):
+   
+    ax101=plt.figure(101)
+    plt.plot(points1d[mask],bz1d_xscan[mask]-bz1d_target_xscan[mask],label='residual $B_z(x,0,0)$')
+    plt.plot(points1d[mask],bz1d_yscan[mask]-bz1d_target_yscan[mask],label='residual $B_z(0,y,0)$')
+    plt.plot(points1d[mask],bz1d_zscan[mask]-bz1d_target_zscan[mask],label='residual $B_z(0,0,z)$')
+    plt.xlabel('x, y, or z (m)')
+    plt.ylabel('residual $B_z$ (true-target)')
+    plt.legend()
+    if(not options.zoom):
+        plt.axvline(x=a/2,color='black',linestyle='--')
+        plt.axvline(x=-a/2,color='black',linestyle='--')
+        plt.axvline(x=a_sensors/2,color='red',linestyle='--')
+        plt.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+    ax102=plt.figure(102)
+    plt.plot(points1d[mask],by1d_xscan[mask]-by1d_target_xscan[mask],label='residual $B_y(x,0,0)$')
+    plt.plot(points1d[mask],by1d_yscan[mask]-by1d_target_yscan[mask],label='residual $B_y(0,y,0)$')
+    plt.plot(points1d[mask],by1d_zscan[mask]-by1d_target_zscan[mask],label='residual $B_y(0,0,z)$')
+    plt.xlabel('x, y, or z (m)')
+    plt.ylabel('residual $B_y$ (true-target)')
+    plt.legend()
+    
+    if(not options.zoom):
+        plt.axvline(x=a/2,color='black',linestyle='--')
+        plt.axvline(x=-a/2,color='black',linestyle='--')
+        plt.axvline(x=a_sensors/2,color='red',linestyle='--')
+        plt.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+    ax103=plt.figure(103)
+    plt.plot(points1d[mask],bx1d_xscan[mask]-bx1d_target_xscan[mask],label='residual $B_x(x,0,0)$')
+    plt.plot(points1d[mask],bx1d_yscan[mask]-bx1d_target_yscan[mask],label='residual $B_x(0,y,0)$')
+    plt.plot(points1d[mask],bx1d_zscan[mask]-bx1d_target_zscan[mask],label='residual $B_x(0,0,z)$')
+    plt.xlabel('x, y, or z (m)')
+    plt.ylabel('residual $B_x$ (true-target)')
+    plt.legend()
+    if(not options.zoom):
+        plt.axvline(x=a/2,color='black',linestyle='--')
+        plt.axvline(x=-a/2,color='black',linestyle='--')
+        plt.axvline(x=a_sensors/2,color='red',linestyle='--')
+        plt.axvline(x=-a_sensors/2,color='red',linestyle='--')
+
+#saving figures
+
+fig7.savefig("/home/jmartin/Desktop/delete_later/Bx_along_x-axis_l0_m0.png",dpi=300,bbox_inches='tight') #delete later
+fig8.savefig("/home/jmartin/Desktop/delete_later/By_along_x-axis_l0_m0.png",dpi=300,bbox_inches='tight') #delete later
+fig9.savefig("/home/jmartin/Desktop/delete_later/Bz_along_x-axis-l0_m0.png",dpi=300,bbox_inches='tight') #delete later
+
 
 plt.show()
 
@@ -611,6 +1063,7 @@ bz1d_target_xscan=bztarget(points1d,0.,0.)*np.ones(np.shape(points1d))*calibrati
 bz1d_target_yscan=bztarget(0.,points1d,0.)*np.ones(np.shape(points1d))*calibration_factor
 bz1d_target_zscan=bztarget(0.,0.,points1d)*np.ones(np.shape(points1d))*calibration_factor
 
+    
 if(options.zoom):
     mask=(points1d>=-a_sensors/2)&(points1d<=a_sensors/2)
 else:
@@ -656,6 +1109,7 @@ if(options.axes):
         ax81.axvline(x=a_sensors/2,color='red',linestyle='--')
         ax81.axvline(x=-a_sensors/2,color='red',linestyle='--')
 
+
     ax91.plot(points1d[mask],bx1d_xscan[mask],label='$B_x(x,0,0)$')
     ax91.plot(points1d[mask],bx1d_target_xscan[mask],label='target $B_x(x,0,0)$')
     ax91.plot(points1d[mask],bx1d_yscan[mask],label='$B_x(0,y,0)$')
@@ -682,5 +1136,5 @@ if(options.axes):
     ax91.legend()
 
     np.savetxt('xscan.out',np.transpose((points1d[mask],bx1d_xscan[mask],by1d_xscan[mask],bz1d_xscan[mask])))
-    
+
 plt.show()
