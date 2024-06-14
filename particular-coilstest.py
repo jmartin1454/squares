@@ -14,6 +14,8 @@
 
 # Thu 09 May 2024 10:05:31 AM CDT Amala edited code some more and some more
 
+# Thu 13 Jun 2024 09:32:21 AM CDT Jeff added output of theory graphs
+# for mapping along axes. Added metadata output.
 
 
 from scipy.constants import mu_0, pi
@@ -1007,9 +1009,9 @@ if(options.residuals):
 
 #saving figures
 
-fig7.savefig("/home/jmartin/Desktop/delete_later/Bx_along_x-axis_l0_m0.png",dpi=300,bbox_inches='tight') #delete later
-fig8.savefig("/home/jmartin/Desktop/delete_later/By_along_x-axis_l0_m0.png",dpi=300,bbox_inches='tight') #delete later
-fig9.savefig("/home/jmartin/Desktop/delete_later/Bz_along_x-axis-l0_m0.png",dpi=300,bbox_inches='tight') #delete later
+fig7.savefig("/home/jmartin/Desktop/delete_later/Bx_along_x-axis_l0_m1.png",dpi=300,bbox_inches='tight') #delete later
+fig8.savefig("/home/jmartin/Desktop/delete_later/By_along_x-axis_l0_m1.png",dpi=300,bbox_inches='tight') #delete later
+fig9.savefig("/home/jmartin/Desktop/delete_later/Bz_along_x-axis-l0_m1.png",dpi=300,bbox_inches='tight') #delete later
 
 
 plt.show()
@@ -1136,5 +1138,23 @@ if(options.axes):
     ax91.legend()
 
     np.savetxt('xscan.out',np.transpose((points1d[mask],bx1d_xscan[mask],by1d_xscan[mask],bz1d_xscan[mask])))
+    np.savetxt('xscan_target.out',np.transpose((points1d[mask],bx1d_target_xscan[mask],by1d_target_xscan[mask],bz1d_target_xscan[mask])))
 
 plt.show()
+
+# output metadata, so that we know what's in these data files
+
+from sympy import latex
+
+data={
+    "l":l,
+    "m":m,
+    "Pix":latex(sp.Pix),
+    "Piy":latex(sp.Piy),
+    "Piz":latex(sp.Piz)
+}
+
+import json
+with open('data.json', 'w') as f:
+    json.dump(data, f)
+
