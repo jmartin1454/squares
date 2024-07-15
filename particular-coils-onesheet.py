@@ -593,7 +593,7 @@ mpl.rcParams['legend.fontsize'] = 10
 
 if(options.traces):
     fig = plt.figure()
-    ax = fig.gca(projection='3d')
+    ax=fig.add_subplot(111,projection='3d')
     myset.draw_coils(ax)
     myarray.draw_sensors(ax)
     ax.set_xlabel('x (m)')
@@ -670,7 +670,7 @@ class the_matrix:
         # test each coil by graphing field at each sensor
         for i in range(myset.numcoils):
             fig = plt.figure()
-            ax = fig.gca(projection='3d')
+            ax=fig.add_subplot(111,projection='3d')
             myset.draw_coil(i,ax)
             myset.coil[i].set_current(1.0)
             for j in range(myarray.numsensors):
